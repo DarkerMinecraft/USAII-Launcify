@@ -3,7 +3,7 @@ name: Deploy Full Stack (Debug)
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   detect-changes:
