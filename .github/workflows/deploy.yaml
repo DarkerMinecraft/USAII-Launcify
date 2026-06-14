@@ -133,6 +133,7 @@ jobs:
 
             echo "Installing dependencies..."
             npm install
+            npm run build
 
             echo "PM2 status:"
             pm2 list || true
