@@ -11,7 +11,7 @@ app.use(express.json());
 
 app.get("/", (_req, res) => {
   res.json({
-    message: "Backend is running using GitHub Actions + test 3",
+    message: "Backend is running using GitHub Actions + test deployment! 🚀",
   });
 });
 
