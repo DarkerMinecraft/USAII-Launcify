@@ -76,7 +76,7 @@ jobs:
             git rev-parse HEAD
 
             echo "Pulling latest changes..."
-            git pull origin main
+            git pull origin master
 
             echo "Git status AFTER pull:"
             git rev-parse HEAD
@@ -126,7 +126,7 @@ jobs:
             git rev-parse HEAD
 
             echo "Pulling latest changes..."
-            git pull origin main
+            git pull origin master
 
             echo "Git status AFTER pull:"
             git rev-parse HEAD
