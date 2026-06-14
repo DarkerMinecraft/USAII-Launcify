@@ -22,11 +22,11 @@ jobs:
             git pull
 
             cd frontend
-            npm ci
+            npm i
             npm run build
 
             cd ../backend
-            npm ci
+            npm i
             npm run build
 
             pm2 restart frontend
