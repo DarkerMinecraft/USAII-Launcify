@@ -1,0 +1,35 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 3.133.7.139
+          username: DarkerM
+          key: ${{ secrets.GITHUBACTIONS }}
+          script: |
+            cd ~/USAII
+
+            git pull
+
+            cd frontend
+            npm ci
+            npm run build
+
+            cd ../backend
+            npm ci
+            npm run build
+
+            pm2 restart frontend
+            pm2 restart backend
+
+            pm2 save
