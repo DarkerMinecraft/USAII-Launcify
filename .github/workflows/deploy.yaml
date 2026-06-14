@@ -3,11 +3,13 @@ name: Deploy Full Stack (Debug)
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
       backend: ${{ steps.filter.outputs.backend }}
