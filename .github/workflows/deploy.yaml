@@ -1,0 +1,72 @@
+name: Deploy Full Stack
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend/**"
+      - "backend/**"
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            backend:
+              - 'backend/**'
+
+  deploy-frontend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Frontend via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 3.133.7.139
+          username: DarkerM
+          key: ${{ secrets.GITHUBACTIONS }}
+          script: |
+            set -e
+            cd ~/USAII/frontend
+
+            git pull origin main
+            npm install
+            npm run build
+
+            pm2 restart frontend || pm2 start npm --name frontend -- start
+
+  deploy-backend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Backend via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 3.133.7.139
+          username: DarkerM
+          key: ${{ secrets.GITHUBACTIONS }}
+          script: |
+            set -e
+            cd ~/USAII/backend
+
+            git pull origin main
+            npm install
+
+            pm2 restart backend || pm2 start dist/index.js --name backend
