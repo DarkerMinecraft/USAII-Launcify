@@ -1,32 +1,26 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 
-import { auth, UnauthorizedError } from "express-oauth2-jwt-bearer";
+import syncRouter from "./v1/auth/sync";
 
-dotenv.config();
+import {
+  InvalidTokenError,
+  InsufficientScopeError,
+  UnauthorizedError,
+} from "express-oauth2-jwt-bearer";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Configure JWT validation middleware
-const checkJwt = auth({
-  issuerBaseURL: `https://${process.env.AUTH0_DOMAIN}`,
-  audience: process.env.AUTH0_AUDIENCE,
-});
-
-app.get("/public", (req: Request, res: Response) => {
-  res.json({ message: "Public endpoint - no authentication required" });
-});
-
-app.get("/private", checkJwt, (req: Request, res: Response) => {
-  res.json({
-    message: "Private endpoint",
-    user: req.auth?.payload.sub,
-  });
-});
+app.use(
+  cors({
+    origin: ["https://usaii.darkermine.dev"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  }),
+);
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   if (err instanceof UnauthorizedError) {
@@ -37,13 +31,25 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
         error: err.statusCode || "unauthorized",
         message: "Authentication required",
       });
-  } else {
-    res.status(500).json({
-      error: "server_error",
-      message: "Internal Server Error",
+  }
+
+  if (err instanceof InsufficientScopeError) {
+    return res.status(403).json({
+      error: "forbidden",
+      message: "You do not have permission to access this resource",
+      required_scopes: err.cause,
+    });
+  }
+
+  if (err instanceof InvalidTokenError) {
+    return res.status(401).json({
+      error: "invalid_token",
+      message: "The provided token is invalid or expired",
     });
   }
 });
+
+app.use("/v1/auth", syncRouter);
 
 app.listen(3001, () => {
   console.log(`🚀 Server running on port 3001`);
