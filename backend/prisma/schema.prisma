@@ -46,6 +46,8 @@ model DebateMessage {
   round     Int
   content   String
   createdAt DateTime       @default(now())
+
+  @@unique([sessionId, agent, round])
 }
 
 enum AgentRole {
