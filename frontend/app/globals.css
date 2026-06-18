@@ -8,7 +8,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -53,6 +53,23 @@
   --color-agent-operator: var(--agent-operator);
   --color-surface: var(--surface);
 
+  /* Warm surface levels */
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-4: var(--surface-4);
+  --color-well: var(--well);
+
+  /* Warm border levels */
+  --color-border-strong: var(--border-strong);
+  --color-border-warm: var(--border-warm);
+  --color-hairline: var(--hairline);
+
+  /* Warm text scale */
+  --color-text-soft: var(--text-soft);
+  --color-text-dim: var(--text-dim);
+  --color-text-faint: var(--text-faint);
+
   /* War Room arena Tailwind utilities */
   --color-war-room-bg: var(--war-room-bg);
   --color-arena-fill: var(--arena-fill);
@@ -64,48 +81,66 @@
   --color-arena-text: var(--arena-text);
 }
 
-/* FOUNDR dark theme — always on, no light/dark toggle */
+/* FOUNDR dark theme — warm editorial palette, always on */
 :root {
-  --background: #0a0a0f;
-  --foreground: #f4f4f5;
-  --card: #111118;
-  --card-foreground: #f4f4f5;
-  --popover: #111118;
-  --popover-foreground: #f4f4f5;
-  --primary: #f4f4f5;
-  --primary-foreground: #0a0a0f;
-  --secondary: #1a1a24;
-  --secondary-foreground: #f4f4f5;
-  --muted: #111118;
-  --muted-foreground: #71717a;
-  --accent: #1a1a24;
-  --accent-foreground: #f4f4f5;
+  /* Core shadcn tokens — warm-shifted */
+  --background: #0f0e0c;
+  --foreground: #ede9e0;
+  --card: #131210;
+  --card-foreground: #ede9e0;
+  --popover: #131210;
+  --popover-foreground: #ede9e0;
+  --primary: #ede9e0;
+  --primary-foreground: #0f0e0c;
+  --secondary: #1a1916;
+  --secondary-foreground: #ede9e0;
+  --muted: #131210;
+  --muted-foreground: #7a7670;
+  --accent: #1a1916;
+  --accent-foreground: #ede9e0;
   --destructive: #ef4444;
-  --border: #2a2a35;
-  --input: #2a2a35;
-  --ring: #3b82f6;
-  --chart-1: #3b82f6;
-  --chart-2: #22c55e;
-  --chart-3: #ef4444;
+  --border: #2e2c28;
+  --input: #2e2c28;
+  --ring: #c2692a;
+  --chart-1: #6f93c4;
+  --chart-2: #6fa37e;
+  --chart-3: #c2692a;
   --chart-4: #f59e0b;
   --chart-5: #8b5cf6;
   --radius: 0.5rem;
-  --sidebar: #111118;
-  --sidebar-foreground: #f4f4f5;
-  --sidebar-primary: #f4f4f5;
-  --sidebar-primary-foreground: #0a0a0f;
-  --sidebar-accent: #1a1a24;
-  --sidebar-accent-foreground: #f4f4f5;
-  --sidebar-border: #2a2a35;
-  --sidebar-ring: #3b82f6;
+  --sidebar: #131210;
+  --sidebar-foreground: #ede9e0;
+  --sidebar-primary: #ede9e0;
+  --sidebar-primary-foreground: #0f0e0c;
+  --sidebar-accent: #1a1916;
+  --sidebar-accent-foreground: #ede9e0;
+  --sidebar-border: #2e2c28;
+  --sidebar-ring: #c2692a;
 
-  /* FOUNDR-specific tokens */
-  --surface: #111118;
-  --agent-skeptic: #ef4444;
-  --agent-strategist: #3b82f6;
-  --agent-operator: #22c55e;
+  /* FOUNDR agent accent colors — warm design-system versions */
+  --surface: #131210;
+  --agent-skeptic: #c2692a;
+  --agent-strategist: #6f93c4;
+  --agent-operator: #6fa37e;
 
-  /* War Room arena tokens — must match inspo.html exactly */
+  /* Warm surface levels (design-system §1) */
+  --surface-1: #131210;
+  --surface-2: #15140f;
+  --surface-3: #1a1916;
+  --surface-4: #1c1a16;
+  --well: #16140f;
+
+  /* Warm border levels */
+  --border-strong: #38332b;
+  --border-warm: #4a443a;
+  --hairline: #1f1e1b;
+
+  /* Warm text scale */
+  --text-soft: #b8b2a7;
+  --text-dim: #7a7670;
+  --text-faint: #5a574f;
+
+  /* War Room arena tokens — match inspo.html exactly */
   --war-room-bg: #0f0e0c;
   --arena-fill: #241f19;
   --arena-stroke: #322b24;
@@ -123,6 +158,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    background: radial-gradient(ellipse 120% 80% at 50% 0%, #14120f 0%, #0f0e0c 60%);
+    min-height: 100vh;
   }
   button:not(:disabled), [role="button"]:not(:disabled) {
     cursor: pointer;
@@ -130,4 +167,31 @@
   html {
     @apply font-sans;
   }
+
+  /* Thin warm scrollbars */
+  ::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2e2c28;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #38332b;
+  }
+}
+
+/* Motion keyframes */
+@keyframes thinkDot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+@keyframes softFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
 }

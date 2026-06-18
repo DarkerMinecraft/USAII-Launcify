@@ -355,22 +355,24 @@ Key elements that must be replicated precisely:
   - Founder ring: `var(--arena-founder-stroke)` `#a8987f` (warm tan)
   - Fill: `rgba(color, 0.15–0.20)` tint inside each ring
 - **Agent accent colors vs. arena stroke colors**: The app-wide accent colors (`#ef4444`, `#3b82f6`, `#22c55e`) are used for text labels, message borders, and node status colors throughout the app. The arena stroke colors above are only for the spatial circle nodes in the arena layout.
-- **"War Room" typography**: Georgia-style serif italic, color `#ede9e0` (`var(--arena-text)`), centered over the oval. Use `font-serif italic` from the Playfair Display variable.
-- **Serif italic "War Room" typography** for the session header — gives it a gravitas/editorial feel distinct from the rest of the app's sans-serif UI
+- **"War Room" typography**: Spectral serif italic, color `#ede9e0` (`var(--arena-text)`), centered over the oval. Use `font-serif italic` (Spectral, via `--font-serif`).
+- **Serif italic "War Room" typography** for the session header — gives it a gravitas/editorial feel distinct from the rest of the app's sans-serif UI (Hanken Grotesk)
 
 The debate transcript (chat view during rounds) transitions into the arena/map view after Round 3 completes.
 
-**Overall vibe:** Bold, energetic, startup-y. Think Vercel or Stripe. Dark background (`#0a0a0f`), sharp modern typography, saturated agent accent colors that pop.
+**Overall vibe:** Dark, warm, editorial "situation room" — confident, literary, dense but calm. Not generic SaaS-dark, not neon cyberpunk. Think a dimly lit walnut roundtable with one overhead light.
 
-**Color system:**
-- Background: `#0a0a0f`
-- Surface/card: `#111118`
-- Border: `#2a2a35`
-- Text primary: `#f4f4f5`
-- Text secondary: `#71717a`
-- Skeptic: `#ef4444`
-- Strategist: `#3b82f6`
-- Operator: `#22c55e`
+**Color system** *(as implemented — warm design-system palette):*
+- Background: `#0f0e0c` (warm brownish-black, with radial gradient `#14120f → #0f0e0c`)
+- Surface/card: `#131210` (`--surface-1`); elevated: `#1a1916` (`--surface-3`)
+- Border: `#2e2c28`; strong: `#38332b`; warm: `#4a443a`
+- Text primary: `#ede9e0` (warm off-white — never pure `#fff`)
+- Text secondary: `#7a7670`; dim: `#5a574f`
+- Skeptic: `#c2692a` (burnt orange) — structural/rings use this, text/labels same
+- Strategist: `#6f93c4` (slate blue text tint); structural base `#3a5a8a`
+- Operator: `#6fa37e` (forest green text tint); structural base `#4a7c59`
+
+> **Note:** The older cool-tone values (`#0a0a0f`, `#ef4444`, `#3b82f6`, `#22c55e`) appear in earlier changelog entries — those were replaced in the Phase 3 design-system refresh (2026-06-18). The current source of truth is `globals.css` `:root` block.
 
 **Layout:** Narrow left sidebar (logo, pillar nav, idea summary card) + wide main panel (debate transcript / assumption map).
 
@@ -384,6 +386,22 @@ The debate transcript (chat view during rounds) transitions into the arena/map v
 - No streaming — full response after loading state
 - Never frame AI output as a verdict or recommendation to proceed/stop
 - Optimize for desktop demo
+
+---
+
+## Design Skills & Priority Hierarchy
+
+Three design skills are active in this project. When instructions conflict, follow this priority order — higher number wins:
+
+1. `frontend-design` (global) — Anthropic's official skill. Sets creative direction and aesthetic thinking. Prevents generic AI-looking output. Apply before writing any UI code.
+2. `ui-ux-pro-max` (global) — Community skill. Reference library for styles, color palettes, font pairings, and UX guidelines. Use when making design decisions that aren't covered by the project design system.
+3. `design-system` (project-level, `.claude/design/FOUNDR_UI_SKILL.md`) — THIS PROJECT'S source of truth. Contains the exact color tokens, typography, spacing, and component patterns for this app. Always wins conflicts with the two global skills above.
+
+### In practice
+- **Before writing any UI component:** read `.claude/design/FOUNDR_UI_SKILL.md` for the canonical color tokens, typography, spacing, and component patterns.
+- Start with `frontend-design` thinking (purpose, tone, differentiation) before writing any component.
+- Pull from `ui-ux-pro-max` for style/palette decisions not specified in the project design system.
+- Always defer to the project `design-system` skill for any token, color, font, or component pattern — never invent values.
 
 ---
 
@@ -543,7 +561,7 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 
 ### Phase 3 — Frontend Shell (no AI yet)
 - [x] Install deps: `@xyflow/react`, `framer-motion`, `@google/genai`, shadcn primitives
-- [x] Apply design tokens (bg `#0a0a0f`, surface, border, agent accents) to `globals.css` + Tailwind theme
+- [x] Apply design tokens to `globals.css` + Tailwind theme *(warm palette applied in post-Phase-3 refresh — see 2026-06-18 changelog entry; current bg `#0f0e0c`, agent accents `#c2692a`/`#6f93c4`/`#6fa37e`)*
 - [x] Build app layout: narrow left sidebar + wide main panel in `app/layout.tsx`
 - [x] Build `app/page.tsx` landing/onboarding
 - [x] Create placeholder pages: `app/launchpad/page.tsx`, `app/pitch-coach/page.tsx`
@@ -593,11 +611,30 @@ The War Room session UI **must** match `frontend/inspo.html` visually. Read the 
 - [ ] Phase 7
 - [ ] Phase 8
 
-> **Next task:** Phase 4, Step 1 — write `frontend/prompts/agents.ts` (all system prompts as named constants), then `frontend/lib/gemini.ts`, then the three API routes.
+> **Next task:** Phase 4 — in order:
+> 1. Write `frontend/prompts/agents.ts` — all system prompts as named constants (SKEPTIC_SYSTEM, STRATEGIST_SYSTEM, OPERATOR_SYSTEM; question-gen prompt; round-2/3 context builder; assumption-map JSON synthesis prompt). Zero inline prompt strings allowed anywhere else.
+> 2. Write `frontend/lib/gemini.ts` — typed `callGemini(prompt, context)` + JSON-parsing helper, non-streaming, uses `GEMINI_API_KEY` from `.env.local`.
+> 3. Build `app/api/war-room/questions/route.ts` — takes idea summary, returns 3 tailored questions as JSON array.
+> 4. Build `app/api/war-room/debate/route.ts` — takes round number + full transcript so far, returns one agent's response for that round.
+> 5. Build `app/api/war-room/assumptions/route.ts` — takes full Round 3 transcript, returns assumption map JSON.
+> Test each API route with a direct `curl` or Thunder Client call before moving to Phase 5.
 
 ---
 
 ## Change Log
+
+### 2026-06-18 — Added design system resources + priority hierarchy
+
+- Added `FOUNDR_UI_SKILL.md` to `.claude/design/` — canonical design system with warm color tokens, Spectral/Hanken Grotesk/JetBrains Mono type stack, spacing scale, component patterns, and agent accent color definitions. This is the project-level source of truth that wins over any global Claude design skills.
+- Added "Design Skills & Priority Hierarchy" section to `CLAUDE.md` (between UI/UX Direction and File Structure) documenting the three-layer priority: `frontend-design` (global) < `ui-ux-pro-max` (global) < `design-system` (project-level `.claude/design/FOUNDR_UI_SKILL.md`). Future sessions must read the design system skill before writing any UI code.
+
+### 2026-06-18 — Phase 3 UI visual refresh (design-system alignment)
+
+- **globals.css:** Shifted palette from cool blue-black (`#0a0a0f`) to warm editorial dark (`#0f0e0c`) with radial gradient on body. Updated all shadcn token values and agent accent colors to match the warm design-system palette (`#c2692a` Skeptic, `#6f93c4` Strategist, `#6fa37e` Operator). Added warm surface levels (`--surface-1` through `--surface-4`), border levels (`--border-strong`, `--border-warm`, `--hairline`), and text scale (`--text-soft/dim/faint`) as Tailwind utilities. Added thin warm scrollbar styles and `thinkDot`/`softFloat` keyframes for Phase 6.
+- **layout.tsx:** Replaced Geist + Geist Mono + Playfair Display with **Spectral** (serif display), **Hanken Grotesk** (sans body), and **JetBrains Mono** (mono labels) per the design system.
+- **Sidebar.tsx:** Logo tile now uses `#ede9e0` white square with Spectral "F" + wordmark + JetBrains Mono "CO-PILOT" sublabel. Nav eyebrow uses mono uppercase. Active nav item gets a glowing 7px accent dot (War Room `#c2692a`, Launchpad `#6fa37e`, Pitch Coach `#6f93c4`); inactive items use hollow ring and `#5a574f` text. Idea card uses warm well surface with Spectral italic placeholder text.
+- **page.tsx:** Mono uppercase eyebrow. Headline splits Spectral italic ("Stress-test your idea") from lighter sans ("before the market does."). Feature trio cards carry per-agent color washes with mono role verb (`CHALLENGES`/`SURFACES`/`GROUNDS`) and Spectral card title. Responsible AI footnote in mono uppercase.
+- **launchpad/page.tsx + pitch-coach/page.tsx:** Icon tiles and lock badges use agent-colored washes. Headings in Spectral. Labels in JetBrains Mono eyebrow pattern.
 
 ### 2026-06-17 — Backend: Pre-existing bugs fixed
 

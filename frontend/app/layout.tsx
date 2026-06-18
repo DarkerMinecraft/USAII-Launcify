@@ -1,22 +1,25 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import { Spectral, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Sidebar } from "@/components/Sidebar";
 
-const geistSans = Geist({
+const hankenGrotesk = Hanken_Grotesk({
   variable: "--font-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
   subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
-const playfair = Playfair_Display({
+const spectral = Spectral({
   variable: "--font-serif",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
 });
 
@@ -35,9 +38,9 @@ export default function RootLayout({
       lang="en"
       className={cn(
         "h-full antialiased",
-        geistSans.variable,
-        geistMono.variable,
-        playfair.variable
+        hankenGrotesk.variable,
+        jetbrainsMono.variable,
+        spectral.variable
       )}
     >
       <body className="h-full flex bg-background text-foreground font-sans overflow-x-auto">
