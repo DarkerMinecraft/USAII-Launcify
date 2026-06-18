@@ -2,6 +2,10 @@
 
 # FOUNDR — Project Summary & Implementation Plan
 
+## Logging
+All session logs, change records, and build notes go in `.claude/LOG.md` — not here.
+After every session, append a dated entry to `LOG.md` summarizing: what was completed, decisions made, and any gotchas hit.
+
 ---
 
 ## What We're Building
@@ -234,8 +238,11 @@ Each agent reads the full questionnaire output independently. Surfaces 1-2 key c
 *Round 2 — Responses*
 Each agent receives the full Round 1 transcript and responds to the other agents' points. Genuine disagreement is expected. The Operator might push back on the Skeptic. The Strategist might reinforce the Skeptic from a market angle.
 
-*Round 3 — Synthesis*
-All three agents receive the full transcript and collectively produce the Assumption Map as structured JSON:
+*Round 3 — Closing Statements*
+Each agent receives the full Rounds 1–2 transcript and gives an independent closing statement, identifying the 1–2 most critical unresolved questions or assumptions the founder must validate. These are three more debate messages (one per agent), shown like Rounds 1 and 2.
+
+*After Round 3 — Map Synthesis (separate call)*
+Once all three closing statements are in, a **separate, single** Gemini call (`POST /api/war-room/assumptions`) takes the **entire** transcript (Rounds 1–3) and produces the Assumption Map as structured JSON. This is not a per-agent debate turn — it is one synthesis pass over the whole debate, run with low temperature for deterministic JSON. The orchestration sequence is therefore: Round 1 (×3) → Round 2 (×3) → Round 3 closings (×3) → assumptions synthesis (×1).
 
 ```json
 {
@@ -251,9 +258,9 @@ All three agents receive the full transcript and collectively produce the Assump
 }
 ```
 
-**UX during debate:** Each agent's full response appears after a loading state — not streamed. Messages are labeled with agent name and round number. The founder watches the debate unfold sequentially.
+**UX during debate:** Each agent's full response appears after a loading state — not streamed. Messages are labeled with agent name and round number. The founder watches the debate unfold sequentially. The map-synthesis call runs after the Round 3 closings, behind its own loading state, before the view transitions to the Assumption Map.
 
-Each round is a separate Gemini API call. Full transcript is passed as context into each subsequent call.
+Each debate turn is a separate Gemini API call, as is the final map synthesis. Full transcript-so-far is passed as context into each subsequent call.
 
 ### Step 3 — The Assumption Map
 
@@ -372,7 +379,7 @@ The debate transcript (chat view during rounds) transitions into the arena/map v
 - Strategist: `#6f93c4` (slate blue text tint); structural base `#3a5a8a`
 - Operator: `#6fa37e` (forest green text tint); structural base `#4a7c59`
 
-> **Note:** The older cool-tone values (`#0a0a0f`, `#ef4444`, `#3b82f6`, `#22c55e`) appear in earlier changelog entries — those were replaced in the Phase 3 design-system refresh (2026-06-18). The current source of truth is `globals.css` `:root` block.
+> **Note:** The older cool-tone values (`#0a0a0f`, `#ef4444`, `#3b82f6`, `#22c55e`) were replaced in the Phase 3 design-system refresh (2026-06-18) — see `.claude/LOG.md`. The current source of truth is `globals.css` `:root` block.
 
 **Layout:** Narrow left sidebar (logo, pillar nav, idea summary card) + wide main panel (debate transcript / assumption map).
 
@@ -561,18 +568,18 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 
 ### Phase 3 — Frontend Shell (no AI yet)
 - [x] Install deps: `@xyflow/react`, `framer-motion`, `@google/genai`, shadcn primitives
-- [x] Apply design tokens to `globals.css` + Tailwind theme *(warm palette applied in post-Phase-3 refresh — see 2026-06-18 changelog entry; current bg `#0f0e0c`, agent accents `#c2692a`/`#6f93c4`/`#6fa37e`)*
+- [x] Apply design tokens to `globals.css` + Tailwind theme *(warm palette applied in post-Phase-3 refresh — see `.claude/LOG.md`; current bg `#0f0e0c`, agent accents `#c2692a`/`#6f93c4`/`#6fa37e`)*
 - [x] Build app layout: narrow left sidebar + wide main panel in `app/layout.tsx`
 - [x] Build `app/page.tsx` landing/onboarding
 - [x] Create placeholder pages: `app/launchpad/page.tsx`, `app/pitch-coach/page.tsx`
 - [x] Create empty route files: `app/war-room/page.tsx`, `app/war-room/session/[id]/page.tsx`
 
 ### Phase 4 — Gemini Service & Prompts
-- [ ] Write `frontend/prompts/agents.ts` — all system prompts as named constants (SKEPTIC, STRATEGIST, OPERATOR; question-gen; round 2/3; assumption-map JSON). No inline prompts anywhere else.
-- [ ] Write `frontend/lib/gemini.ts` — typed `callGemini(prompt, context)` + JSON-parsing helper, non-streaming
-- [ ] Build + test `app/api/war-room/questions/route.ts`
-- [ ] Build + test `app/api/war-room/debate/route.ts`
-- [ ] Build + test `app/api/war-room/assumptions/route.ts`
+- [x] Write `frontend/prompts/agents.ts` — all system prompts as named constants (SKEPTIC, STRATEGIST, OPERATOR; question-gen; round 2/3; assumption-map JSON). No inline prompts anywhere else.
+- [x] Write `frontend/lib/gemini.ts` — typed `callGemini(prompt, context)` + JSON-parsing helper, non-streaming
+- [x] Build + test `app/api/war-room/questions/route.ts`
+- [x] Build + test `app/api/war-room/debate/route.ts`
+- [x] Build + test `app/api/war-room/assumptions/route.ts`
 
 ### Phase 5 — War Room: Idea Intake
 - [ ] Build `components/war-room/Questionnaire.tsx` — one-liner → 3 AI questions + 5 defaults = 8 question form
@@ -583,7 +590,7 @@ The War Room session UI **must** match `frontend/inspo.html` visually. Read the 
 
 ### Phase 6 — War Room: The Debate
 - [ ] Build `components/war-room/DebateTranscript.tsx` — agent avatars, accent borders, typing indicators, Framer Motion reveal
-- [ ] Build orchestration hook: Round 1 (×3 agents) → Round 2 (×3, full R1 transcript) → Round 3 synthesis, each gated by loading state
+- [ ] Build orchestration hook: Round 1 (×3 agents) → Round 2 (×3) → Round 3 closings (×3) → assumptions synthesis (×1, `POST /api/war-room/assumptions`), each step gated by its own loading state. The round builders slice the transcript internally, so pass the full transcript-so-far to every call.
 - [ ] Persist transcript via `PATCH /v1/sessions/:id` as rounds complete
 
 ### Phase 7 — War Room: Assumption Map
@@ -605,95 +612,14 @@ The War Room session UI **must** match `frontend/inspo.html` visually. Read the 
 - [x] Phase 1 *(migration pending live DB)*
 - [x] Phase 2 *(smoke test pending live DB)*
 - [x] Phase 3
-- [ ] Phase 4
+- [x] Phase 4
 - [ ] Phase 5
 - [ ] Phase 6
 - [ ] Phase 7
 - [ ] Phase 8
 
-> **Next task:** Phase 4 — in order:
-> 1. Write `frontend/prompts/agents.ts` — all system prompts as named constants (SKEPTIC_SYSTEM, STRATEGIST_SYSTEM, OPERATOR_SYSTEM; question-gen prompt; round-2/3 context builder; assumption-map JSON synthesis prompt). Zero inline prompt strings allowed anywhere else.
-> 2. Write `frontend/lib/gemini.ts` — typed `callGemini(prompt, context)` + JSON-parsing helper, non-streaming, uses `GEMINI_API_KEY` from `.env.local`.
-> 3. Build `app/api/war-room/questions/route.ts` — takes idea summary, returns 3 tailored questions as JSON array.
-> 4. Build `app/api/war-room/debate/route.ts` — takes round number + full transcript so far, returns one agent's response for that round.
-> 5. Build `app/api/war-room/assumptions/route.ts` — takes full Round 3 transcript, returns assumption map JSON.
-> Test each API route with a direct `curl` or Thunder Client call before moving to Phase 5.
+> **Next task:** Phase 5 — Idea Intake
+> 1. Build `components/war-room/Questionnaire.tsx` — one-liner → calls `/api/war-room/questions`, renders 3 AI questions + 5 defaults = 8-question form.
+> 2. Wire submit: `POST /v1/sessions` to persist session, route to `/war-room/session/[id]`.
+> Backend + DB required — run `prisma migrate dev` against a live DB first.
 
----
-
-## Change Log
-
-### 2026-06-18 — Added design system resources + priority hierarchy
-
-- Added `FOUNDR_UI_SKILL.md` to `.claude/design/` — canonical design system with warm color tokens, Spectral/Hanken Grotesk/JetBrains Mono type stack, spacing scale, component patterns, and agent accent color definitions. This is the project-level source of truth that wins over any global Claude design skills.
-- Added "Design Skills & Priority Hierarchy" section to `CLAUDE.md` (between UI/UX Direction and File Structure) documenting the three-layer priority: `frontend-design` (global) < `ui-ux-pro-max` (global) < `design-system` (project-level `.claude/design/FOUNDR_UI_SKILL.md`). Future sessions must read the design system skill before writing any UI code.
-
-### 2026-06-18 — Phase 3 UI visual refresh (design-system alignment)
-
-- **globals.css:** Shifted palette from cool blue-black (`#0a0a0f`) to warm editorial dark (`#0f0e0c`) with radial gradient on body. Updated all shadcn token values and agent accent colors to match the warm design-system palette (`#c2692a` Skeptic, `#6f93c4` Strategist, `#6fa37e` Operator). Added warm surface levels (`--surface-1` through `--surface-4`), border levels (`--border-strong`, `--border-warm`, `--hairline`), and text scale (`--text-soft/dim/faint`) as Tailwind utilities. Added thin warm scrollbar styles and `thinkDot`/`softFloat` keyframes for Phase 6.
-- **layout.tsx:** Replaced Geist + Geist Mono + Playfair Display with **Spectral** (serif display), **Hanken Grotesk** (sans body), and **JetBrains Mono** (mono labels) per the design system.
-- **Sidebar.tsx:** Logo tile now uses `#ede9e0` white square with Spectral "F" + wordmark + JetBrains Mono "CO-PILOT" sublabel. Nav eyebrow uses mono uppercase. Active nav item gets a glowing 7px accent dot (War Room `#c2692a`, Launchpad `#6fa37e`, Pitch Coach `#6f93c4`); inactive items use hollow ring and `#5a574f` text. Idea card uses warm well surface with Spectral italic placeholder text.
-- **page.tsx:** Mono uppercase eyebrow. Headline splits Spectral italic ("Stress-test your idea") from lighter sans ("before the market does."). Feature trio cards carry per-agent color washes with mono role verb (`CHALLENGES`/`SURFACES`/`GROUNDS`) and Spectral card title. Responsible AI footnote in mono uppercase.
-- **launchpad/page.tsx + pitch-coach/page.tsx:** Icon tiles and lock badges use agent-colored washes. Headings in Spectral. Labels in JetBrains Mono eyebrow pattern.
-
-### 2026-06-17 — Backend: Pre-existing bugs fixed
-
-- Removed duplicate unrestricted `cors()` call — the configured origin allowlist was being defeated. Added `http://localhost:3000` for local dev.
-- Applied `checkJwt` to `/v1/auth` router — it was defined but never mounted, so every sync call returned 401.
-- Moved error handler to after route mounts — Express only catches errors from routes registered above the handler.
-- Added missing `return` to `UnauthorizedError` branch to prevent fall-through.
-- Guarded `payload.email` in `sync.ts` with an early 400 — Auth0 access tokens omit email by default, and the field is required+unique in Prisma.
-
-### 2026-06-17 — Phase 0: Groundwork & Verification
-
-- Fixed `frontend/.gitignore`: added `!.env.example` so the template file isn't swallowed by the `.env*` glob.
-- Created `frontend/.env.example` and `backend/.env.example` with all required placeholder keys.
-- Confirmed `tsconfig.json` alias and `components/ui/button.tsx` location are already correct — no changes needed.
-- Read Next.js 16 upgrade guide; key finding: `params` must be awaited everywhere (see Gotchas above).
-
-### 2026-06-17 — Phase 1: Prisma schema + backend compilation
-
-- Added all new models and enums to `schema.prisma` (`WarRoomSession`, `DebateMessage`, `AssumptionNode`, three enums).
-- Removed invalid `url =` from datasource block (Prisma 7 breaking change).
-- Fixed `prisma.ts`: added `PrismaPg` adapter — `new PrismaClient()` with no args is a compile error in Prisma 7.
-- Fixed deploy workflow: wrong PM2 start path (`index.js` → `npm -- start`); added `prisma migrate deploy`; added explicit `--config` flags.
-- `prisma generate` succeeds. Migration pending (needs live DB).
-
-### 2026-06-17 — Phase 2: Express sessions scaffolding
-
-- Created `backend/src/middleware/requireUser.ts` — resolves `User` from JWT sub; returns null + sends response if user not found.
-- Created `backend/src/v1/sessions/index.ts`:
-  - `POST /v1/sessions` — create session, return id
-  - `GET /v1/sessions/:id` — fetch session + transcript + assumptions, owner-checked
-  - `PATCH /v1/sessions/:id` — update canvas/status, append messages, replace assumptions; all in a transaction
-- Mounted under `/v1/sessions` with `checkJwt` in `index.ts`.
-- `tsc --noEmit` passes clean.
-
-### 2026-06-18 — Phase 3: Frontend Shell
-
-- Established the FOUNDR dark palette as the only theme — removed light mode entirely; `:root` always carries the dark tokens (`#0a0a0f` bg, `#111118` surface, `#2a2a35` border). Agent accent colors (`--agent-skeptic/strategist/operator`) exposed as Tailwind utilities via `@theme inline`.
-- Added `Playfair Display` (normal + italic) as `--font-serif` for the War Room session header; Geist Sans remains the primary UI font.
-- Installed `@xyflow/react`, `framer-motion`, `@google/genai` — all required for Phases 4–7.
-- Built `app/layout.tsx` with full-height sidebar + scrollable main panel side-by-side. Sidebar is always visible on all routes (per product decision).
-- Built `components/Sidebar.tsx` (Client Component): FOUNDR logo, three-pillar nav with active-path detection via `usePathname()`, lock badges on Launchpad and Pitch Coach, empty-state idea summary card at bottom.
-- Rewrote `app/page.tsx` as the FOUNDR hero inside the main panel: headline, agent intro trio with accent colors, "Enter the War Room →" CTA, responsible AI footnote.
-- Created placeholder pages for `app/launchpad/page.tsx` and `app/pitch-coach/page.tsx` — locked states with feature descriptions; never 404.
-- Created shell pages for `app/war-room/page.tsx` and `app/war-room/session/[id]/page.tsx` — the session page uses `await params` (Next.js 16 breaking change).
-- `tsc --noEmit` passes clean.
-- **Gotcha:** `mkdir -p` with a literal `[id]` in the path fails in zsh due to glob expansion — must quote the path.
-
-### 2026-06-18 — Code review fixes (post-Phase 3)
-
-- **Backend:** Added `claim` and `explanation` string validation to `PATCH /v1/sessions` assumption loop — previously only enum fields were checked; a malformed client could send empty strings and trigger a Prisma error instead of a clean 400.
-- **Sidebar:** Removed `pointer-events-none` from locked pillar links — placeholder pages exist and should be reachable. Visual lock state (opacity-50 + lock icon) is sufficient.
-- **Responsive grids:** Changed `grid-cols-3` to `grid-cols-1 sm:grid-cols-3` in `app/page.tsx` and `app/launchpad/page.tsx` — hardcoded 3-col grid was unreadable on narrow viewports.
-- **Layout:** Added `overflow-x-auto` to `<body>` and `min-w-0` to `<main>` — prevents sidebar squeezing main content into zero width on narrow screens; falls back to horizontal scroll.
-- **Turbopack root:** Set `turbopack: { root: __dirname }` in `next.config.ts` — stops Turbopack from walking up to the parent `package-lock.json` at `/Users/ericwei/USAII/` and inferring the wrong workspace root.
-
-### 2026-06-17 — Sessions router hardening (post-review)
-
-- Added `@@unique([sessionId, agent, round])` to `DebateMessage` + `skipDuplicates: true` on createMany — retries are now idempotent.
-- Changed assumption writes to delete-then-recreate — no natural unique key; this is the safe idempotency pattern.
-- Changed ownership checks to `findFirst({ where: { id, userId } })` — eliminates the 403 vs 404 session-existence leak.
-- Added runtime enum/type validation to all PATCH/POST inputs — bad data now returns a 400 instead of a Prisma 500.
-- Created root `.gitignore` with `.DS_Store` and `node_modules/`.
