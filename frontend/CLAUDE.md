@@ -1,5 +1,45 @@
 @AGENTS.md
 
+> **📌 HANDOFF PROTOCOL — read every session, keep current before you stop.**
+> This file + `.claude/LOG.md` ARE the handoff state: a freshly `/clear`-ed session must be able to continue from them alone. So before ending any session: (1) append a dated entry to `.claude/LOG.md` (append-only history — never rewrite it); and (2) update the **live-state** sections of THIS file so they reflect reality — the "🔴 Outstanding" block directly below, plus "Current Status" and the "Next task" note near the bottom. LOG.md is safe by construction; the top-of-CLAUDE.md state is the part that silently goes stale. If you changed what's blocked, done, or next, edit it here too — don't make the user ask.
+
+# ✅ No Outstanding Blockers (as of 2026-06-18)
+
+All prior blockers resolved:
+1. ✅ **API keys rotated** — new `GEMINI_API_KEY` + `GROQ_API_KEY` in `frontend/.env.local`; old leaked values (commit `3fc93c8`) are dead.
+2. ✅ **Auth0 fully wired** — `AUTH0_CLIENT_ID` + `AUTH0_CLIENT_SECRET` pasted into `frontend/.env.local`; `backend/.env` has real `AUTH0_DOMAIN`/`AUTH0_AUDIENCE`; `next build` clean. E2E login → questionnaire → session creation is testable now (both apps running + Docker Postgres up).
+
+> **Still to confirm manually before demo:** Login-flow Auth0 Action sets `email`/`name`/`picture` custom claims on the access token (without it `GET /v1/auth/sync` returns 400). Check Auth0 dashboard → Actions → Flows → Login.
+
+---
+
+# ⚠️ READ FIRST — This Is a Hackathon Submission
+
+**FOUNDR is built to win USAII Global AI Hackathon 2026 — Undergraduate Track, Challenge Brief 3, Direction B (Zero-to-One Builder).** Every decision should be made against the official judging rubric. The full brief is at [`.claude/challenge_brief_3.md`](../.claude/challenge_brief_3.md) — read it before any significant work.
+
+**Build window:** June 14–21, 2026. **Deadline:** Sunday June 21, 2026 (Devpost).
+
+### Judging rubric — optimize for this (highest weight first)
+| Weight | Dimension | What judges want |
+|---|---|---|
+| **30%** | **AI Reasoning** | AI use is *justified* — why an LLM beats a rules engine. No buzzwords. **This is the biggest lever.** |
+| **25%** | Solution Design | A coherent pipeline: **input → reasoning → output → action**. |
+| **20%** | Problem Understanding | A clear decision context, a specific user, acknowledged constraints. |
+| **15%** | Impact & Insight | Does it move the user from confusion → clarity → action? |
+| **10%** | Responsible AI | A named risk + a concrete mitigation + a human-in-the-loop the AI does *not* override. |
+
+### Non-negotiables baked into the rubric (violating these loses points)
+- **Reason, don't retrieve/generate.** Help the founder *think through tradeoffs* — never spit out lists. (The multi-agent debate is our core differentiator here.)
+- **Never present output as a "correct answer" or verdict.** Outputs are decision *inputs*. The founder decides.
+- **There must be a clear user decision moment.** Ours: the founder remediates assumption nodes (validate / modify / remove) and chooses what to test next.
+- **Represent uncertainty honestly.** Our `VALIDATED / UNVALIDATED / NEEDS_INFO` statuses are the confidence indicators — never hide tradeoffs or imply false certainty.
+- **Ship ≥1 responsible-AI safeguard, visibly.** Risk = *false confidence*; mitigation = persistent disclaimer + uncertainty framing; human-in-loop = founder remediates nodes & sends all outreach manually.
+- **"Why an LLM here?"** — extracting implicit assumptions from freeform text, classifying them contextually, generating tailored validation paths, and reasoning across a multi-turn agent debate. A rules engine cannot do this. Keep this answer demo-ready.
+
+> See the full **Hackathon Context** and **Responsible AI** sections below for detail. When a design or scope choice is ambiguous, choose the option that scores better on the rubric above.
+
+---
+
 # FOUNDR — Project Summary & Implementation Plan
 
 ## Logging
@@ -433,9 +473,11 @@ frontend/
 │       └── auth/
 │           └── sync/route.ts
 ├── lib/
-│   ├── llm.ts                          # Provider orchestration: Gemini primary, Groq fallback
+│   ├── llm.ts                          # Provider orchestration: Gemini primary, Groq fallback (call this, not gemini/groq directly)
 │   ├── gemini.ts                       # Gemini provider + shared JSON parser
-│   └── groq.ts                         # Groq fallback provider
+│   ├── groq.ts                         # Groq fallback provider (strips Qwen <think> blocks)
+│   ├── types.ts                        # Canonical shared types: AssumptionNode, Canvas, QA, DebateMessage, AgentRole — single source of truth
+│   └── questionnaire.ts                # hasAnsweredQuestionnaire() guard
 ├── components/
 │   ├── war-room/
 │   │   ├── Questionnaire.tsx
@@ -481,9 +523,10 @@ backend/
 
 ## Hackathon Context
 
-- **Event:** USAII Global AI Hackathon 2026, Challenge Brief 3, Direction B
+- **Event:** USAII Global AI Hackathon 2026, **Undergraduate Track**, Challenge Brief 3, Direction B (Zero-to-One Builder)
+- **Full brief:** [`.claude/challenge_brief_3.md`](../.claude/challenge_brief_3.md)
 - **Deadline:** Sunday June 21, 2026
-- **Submission:** Devpost — working demo, 3-5 minute video, responsible AI statement
+- **Submission (Devpost) — fields to prepare:** Qualifier Approval Code (8-char), Project Description, Track & Challenge selection, **AI Architecture Explanation** (inputs → AI capability → processing → outputs), **Human-in-Loop Design** (one decision the AI does NOT make + why), **Responsible AI Guardrail** (one risk + how reduced), **Tools Used** (mark free vs paid), **Data Disclosure**, 3–5 min pitch video, working demo.
 - **Judging weights:** AI Reasoning 30%, Solution Design 25%, Problem Understanding 20%, Impact 15%, Responsible AI 10%
 - **Key judge question:** Why is an LLM better here than a rules engine? Answer: extracting implicit assumptions from freeform text, classifying them contextually, generating tailored validation paths, and reasoning across a multi-turn agent debate requires language understanding that rules cannot replicate.
 
@@ -498,6 +541,9 @@ These were explicitly decided and should not be revisited without flagging:
 - **canvas JSON is the source of truth for assumption state** — the `AssumptionNode` table is for structured DB querying; remediation updates always go through `canvas` PATCH. The frontend reads from canvas, not from the `AssumptionNode` rows, when rendering the map.
 - **No streaming** — all LLM calls return full responses after a loading state. `EventSource` / streaming is explicitly out of scope.
 - **All prompts in `prompts/agents.ts`** — zero inline prompt strings allowed in components or API routes.
+- **Auth pattern (established Phase 5, `@auth0/nextjs-auth0` v4):** Login/logout/callback are mounted by `frontend/proxy.ts` at `/auth/*`; the server client is `frontend/lib/auth0.ts`. **Next 16 renamed the `middleware` file convention to `proxy`** — the file is `proxy.ts` and exports a function named `proxy` (a `middleware.ts` still works but warns on build; do not reintroduce it). The browser **never holds the access token** — all authenticated backend calls go through a **BFF proxy**: a Next route handler under `app/api/sessions*` calls `forwardToBackend()`/`ensureUserSynced()` in `frontend/lib/backend.ts`, which attaches the Bearer token server-side and idempotently syncs the user (`GET /v1/auth/sync`) before any write. **Phases 6–7 must follow this** — add `app/api/sessions/[id]/route.ts` (GET/PATCH) using the same helper; do not call the Express backend from the client directly. The proxy matcher intentionally excludes `/api/war-room/*` (public LLM routes).
+
+> **Auth0 setup still required for live auth** (dashboard work — code is done): Regular Web App + API (identifier = `AUTH0_AUDIENCE`); callback `http://localhost:3000/auth/callback`, logout `http://localhost:3000`; the Login-flow Action that sets the `email`/`name`/`picture` custom claims on the **access token** (without it `sync.ts` 400s — see Gotchas); frontend `.env.local` needs `AUTH0_SECRET` (`openssl rand -hex 32`), `APP_BASE_URL`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_SCOPE`; and **`backend/.env` must get the real `AUTH0_DOMAIN`/`AUTH0_AUDIENCE`** (still placeholders, so `checkJwt` can't validate yet).
 
 ---
 
@@ -534,8 +580,10 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 - `PrismaClient()` requires an adapter argument: `new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) })`
 - Always run `prisma generate --config prisma.config.ts` and `prisma migrate ... --config prisma.config.ts` from `backend/`
 
-### Pending — requires live DB
-`prisma migrate dev --name war_room_models` has not been run yet. The new tables (`WarRoomSession`, `DebateMessage`, `AssumptionNode`) do not exist in any environment. Run from `backend/` with `DATABASE_URL` in `.env` before Phase 5.
+### Local dev database (migration done)
+`prisma migrate dev --name war_room_models` has been **run** against a local Docker Postgres (migration `20260618220427_war_room_models`). The tables (`WarRoomSession`, `DebateMessage`, `AssumptionNode`) exist in the **local dev DB only** — not on Ben's machine or the production server (`3.133.7.139`).
+- Dev DB: Docker container `foundr-db` (`postgres:16-alpine`), `DATABASE_URL=postgresql://foundr:foundr@localhost:5432/foundr`. Restart with `docker start foundr-db`.
+- Auth0 values in `backend/.env` are still placeholders — a *full* end-to-end Phase 5 test (real login → `POST /v1/sessions`) still needs working Auth0 config.
 
 ---
 
@@ -555,7 +603,7 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 - [x] Add `url = env("DATABASE_URL")` to datasource block in `schema.prisma`
 - [x] Add `WarRoomSession`, `DebateMessage`, `AssumptionNode` models + enums (`SessionStatus`, `AgentRole`, `NodeStatus`)
 - [x] Add `sessions WarRoomSession[]` back-relation to `User`
-- [ ] Run `prisma generate` + `prisma migrate dev --name war_room_models` *(generate done; migrate pending live DB)*
+- [x] Run `prisma generate` + `prisma migrate dev --name war_room_models` *(done — local Docker Postgres, migration `20260618220427_war_room_models`)*
 
 ### Phase 2 — Backend Scaffolding (Express)
 - [x] Fix broken error handler in `backend/src/index.ts`, move it after routes
@@ -565,7 +613,7 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 - [x] Implement `POST /v1/sessions` — create session, return id
 - [x] Implement `GET /v1/sessions/:id` — return session + transcript + assumptions, owner-checked
 - [x] Implement `PATCH /v1/sessions/:id` — persist canvas, status, bulk-write messages/nodes
-- [ ] Smoke test all endpoints with a token before touching frontend *(pending live DB)*
+- [~] Smoke test all endpoints with a token *(query layer verified via `backend/scripts/test-db.ts`; authenticated HTTP smoke still gated on a real Auth0 token)*
 
 ### Phase 3 — Frontend Shell (no AI yet)
 - [x] Install deps: `@xyflow/react`, `framer-motion`, `@google/genai`, shadcn primitives
@@ -583,8 +631,11 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 - [x] Build + test `app/api/war-room/assumptions/route.ts`
 
 ### Phase 5 — War Room: Idea Intake
-- [ ] Build `components/war-room/Questionnaire.tsx` — one-liner → 3 AI questions + 5 defaults = 8 question form
-- [ ] Wire submit: `POST /v1/sessions` to persist, route to `/war-room/session/[id]`
+- [x] Build `components/war-room/Questionnaire.tsx` — one-liner → 3 AI questions + 5 defaults = 8 question form
+- [x] Wire submit: `POST /v1/sessions` to persist, route to `/war-room/session/[id]`
+- [x] Auth0 v4 integration + BFF proxy (`/api/sessions`) — the JWT prerequisite the original plan omitted (see Architectural Decisions)
+- [x] DB vigorously tested via `backend/scripts/test-db.ts` (13/13 against local Docker)
+- ⚠️ Live login→submit→DB row is gated on the Auth0 dashboard + env items below (still pending)
 
 ### ⚠️ Before Phase 6 — Open inspo.html in a browser
 The War Room session UI **must** match `frontend/inspo.html` visually. Read the "Visual reference" section in UI/UX Direction above for the exact color tokens and layout constraints. Do not approximate — compare side-by-side. All arena-specific CSS variables are already in `globals.css`.
@@ -598,7 +649,16 @@ The War Room session UI **must** match `frontend/inspo.html` visually. Read the 
 - [ ] Build `components/war-room/AssumptionMap.tsx` — React Flow, color-coded by status, sized by risk, network layout
 - [ ] Build node side-panel: claim + explanation + agent reasoning + validate/modify/remove form
 - [ ] Wire remediation: update node status on canvas, `PATCH` canvas JSON
-- [ ] Add Responsible AI disclaimer banner + "→ Launchpad" CTA
+
+**Responsible AI — this is a scored category (10%); do NOT reduce it to one banner.** The brief requires a named risk + a concrete, *visible* mitigation + a legible human-in-the-loop. FOUNDR's safeguards are architectural (the AI never renders a verdict; the founder remediates every node) — Phase 7's job is to make them *visible and narratable for the demo/video*. Build all of the following:
+
+- [ ] **Uncertainty-first map (the core mitigation, not the banner).** Make UNVALIDATED / NEEDS_INFO nodes visually *louder* than VALIDATED — larger, higher-contrast, foregrounded. The map must never read as a "your idea is validated" trophy. Honest uncertainty is the safeguard; the visual hierarchy is how judges see it.
+- [ ] **Per-node honesty microcopy.** Each node's side-panel states the status was *AI-inferred from only what the founder told us* and prompts them to verify before trusting it. This is the false-confidence + hallucination guard at the point of risk — not just a page-level strip.
+- [ ] **Persistent results-screen disclaimer banner.** Always-visible: *"This analysis is based entirely on what you've told us. It does not replace talking to real customers."* Plus copy stating the AI does not decide whether the idea is worth pursuing.
+- [ ] **Make the human-in-the-loop legible on screen.** When the founder remediates a node, it visibly changes *because they acted* (status/color shift on their input, never auto-resolved by the AI). This is the on-camera proof of HITL for the pitch video — the user's decision moment must be obvious.
+- [ ] **Surface `howToTest` as the concrete next step.** Each unvalidated node shows its AI-suggested validation action prominently — this is Direction B's "first real step" and carries the "→ action" half of the pipeline while Launchpad is a placeholder.
+- [ ] Add the **"→ Launchpad" CTA** after the map.
+- [ ] **Pitch-ready one-liner** (drop into `SUBMISSION.md`): Risk = *false confidence* → Mitigation = uncertainty-first map + "based only on what you told us" framing → HITL = *the founder validates every assumption; the AI never decides if the idea is good.*
 
 ### Phase 8 — Polish & Ship
 - [ ] End-to-end pass: intake → debate → map → remediate → canvas persisted
@@ -610,16 +670,18 @@ The War Room session UI **must** match `frontend/inspo.html` visually. Read the 
 > Update this after each phase completes.
 
 - [x] Phase 0
-- [x] Phase 1 *(migration pending live DB)*
-- [x] Phase 2 *(smoke test pending live DB)*
+- [x] Phase 1 *(migration run against local Docker Postgres)*
+- [x] Phase 2 *(query layer tested via `test-db.ts`; authenticated HTTP smoke gated on Auth0 token)*
 - [x] Phase 3
 - [x] Phase 4
-- [ ] Phase 5
+- [x] Phase 5 *(code complete + DB tested; live auth E2E gated on Auth0 dashboard/env)*
 - [ ] Phase 6
 - [ ] Phase 7
 - [ ] Phase 8
 
-> **Next task:** Phase 5 — Idea Intake
-> 1. Build `components/war-room/Questionnaire.tsx` — one-liner → calls `/api/war-room/questions`, renders 3 AI questions + 5 defaults = 8-question form.
-> 2. Wire submit: `POST /v1/sessions` to persist session, route to `/war-room/session/[id]`.
-> Backend + DB required — run `prisma migrate dev` against a live DB first.
+> **Next task:** Phase 6 — The Debate (open `inspo.html` first; see the ⚠️ pre-Phase-6 note above).
+> 1. Build `components/war-room/DebateTranscript.tsx` — agent avatars, accent borders, typing indicators, Framer Motion reveal.
+> 2. Build the orchestration hook: R1 (×3) → R2 (×3) → R3 closings (×3) → assumptions synthesis (×1), each gated by its own loading state; pass the full transcript-so-far to every call.
+> 3. Persist via `PATCH /v1/sessions/:id` — reuse the Phase 5 BFF pattern: add `app/api/sessions/[id]/route.ts` (GET/PATCH) that forwards through `forwardToBackend` (`lib/backend.ts`).
+>
+> **Before live-testing Phase 6:** complete the Auth0 setup (dashboard + env) so a real session exists to debate against — see "Auth pattern" under Architectural Decisions.

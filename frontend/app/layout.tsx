@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Spectral, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Auth0Provider } from "@auth0/nextjs-auth0";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Sidebar } from "@/components/Sidebar";
@@ -44,8 +45,10 @@ export default function RootLayout({
       )}
     >
       <body className="h-full flex bg-background text-foreground font-sans overflow-x-auto">
-        <Sidebar />
-        <main className="flex-1 min-h-screen overflow-auto min-w-0">{children}</main>
+        <Auth0Provider>
+          <Sidebar />
+          <main className="flex-1 min-h-screen overflow-auto min-w-0">{children}</main>
+        </Auth0Provider>
       </body>
     </html>
   );

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Swords, Rocket, Mic, Lock } from "lucide-react";
+import { Swords, Rocket, Mic, Lock, LogIn, LogOut } from "lucide-react";
+import { useUser } from "@auth0/nextjs-auth0";
 import { cn } from "@/lib/utils";
 
 const pillars = [
@@ -34,6 +35,7 @@ const pillars = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, isLoading } = useUser();
 
   return (
     <aside
@@ -165,6 +167,65 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Auth affordance */}
+      <div className="p-3" style={{ borderTop: "1px solid #1f1e1b" }}>
+        {isLoading ? (
+          <div
+            className="font-mono uppercase px-1 py-2"
+            style={{ fontSize: "9px", letterSpacing: "0.14em", color: "#5a574f" }}
+          >
+            …
+          </div>
+        ) : user ? (
+          <div className="flex items-center gap-2.5">
+            <div className="flex-1 min-w-0">
+              <p
+                className="truncate font-medium leading-tight"
+                style={{ fontSize: "12.5px", color: "#ede9e0" }}
+              >
+                {user.name ?? user.email ?? "Signed in"}
+              </p>
+              <p
+                className="truncate font-mono uppercase mt-0.5"
+                style={{ fontSize: "8.5px", letterSpacing: "0.1em", color: "#5a574f" }}
+              >
+                Signed in
+              </p>
+            </div>
+            <a
+              href="/auth/logout"
+              title="Sign out"
+              className="shrink-0 flex items-center justify-center rounded-lg transition-colors"
+              style={{
+                width: "30px",
+                height: "30px",
+                background: "#1a1916",
+                border: "1px solid #2e2c28",
+                color: "#9a958c",
+              }}
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        ) : (
+          <a
+            href="/auth/login"
+            className="flex items-center justify-center gap-2 rounded-lg transition-colors"
+            style={{
+              padding: "9px 12px",
+              background: "#1a1916",
+              border: "1px solid #2e2c28",
+              color: "#ede9e0",
+              fontSize: "12.5px",
+              fontWeight: 600,
+            }}
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            Sign in
+          </a>
+        )}
+      </div>
 
       {/* Idea summary card — empty state in Phase 3 */}
       <div className="p-3" style={{ borderTop: "1px solid #1f1e1b" }}>
