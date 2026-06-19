@@ -640,10 +640,13 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 ### ⚠️ Before Phase 6 — Open inspo.html in a browser
 The War Room session UI **must** match `frontend/inspo.html` visually. Read the "Visual reference" section in UI/UX Direction above for the exact color tokens and layout constraints. Do not approximate — compare side-by-side. All arena-specific CSS variables are already in `globals.css`.
 
-### Phase 6 — War Room: The Debate
-- [ ] Build `components/war-room/DebateTranscript.tsx` — agent avatars, accent borders, typing indicators, Framer Motion reveal
-- [ ] Build orchestration hook: Round 1 (×3 agents) → Round 2 (×3) → Round 3 closings (×3) → assumptions synthesis (×1, `POST /api/war-room/assumptions`), each step gated by its own loading state. The round builders slice the transcript internally, so pass the full transcript-so-far to every call.
-- [ ] Persist transcript via `PATCH /v1/sessions/:id` as rounds complete
+### Phase 6 — War Room: The Debate ✅ (code complete; live E2E gated on Auth0)
+> Per `.claude/PHASE_6_PLAN.md` the layout is the **arena roundtable** and the transcript UI + orchestration + persistence were consolidated into a single client component, `components/war-room/WarRoomArena.tsx` (no separate `DebateTranscript.tsx`).
+- [x] Arena UI — SVG roundtable matching `inspo.html` geometry exactly, active-speaker glow (`arenaGlow` keyframe), round stepper, speech-bubble transcript log + typing bubbles (Framer Motion reveal). *(Statements render in a chronological log beneath the arena rather than one ephemeral floating bubble — for demo readability; see `.claude/LOG.md`.)*
+- [x] Orchestration: Round 1 (×3) → Round 2 (×3) → Round 3 closings (×3) → assumptions synthesis (×1, `POST /api/war-room/assumptions`), each gated by its own loading state; full transcript-so-far passed to every call. State machine `loading→debating→synthesizing→ready` with load+resume from existing transcript and per-turn retry.
+- [x] Persist transcript via the BFF `PATCH /api/sessions/[id]` after each round (best-effort, idempotent); synthesis writes `canvas` + assumptions + `status:"COMPLETE"`.
+- [x] BFF `GET`/`PATCH` route `app/api/sessions/[id]/route.ts` (was already committed in `8f07e90`; verified correct).
+- ⚠️ Live browser E2E (sign in → session → 3 rounds → synthesis → DB rows) gated on the outstanding Auth0 dashboard items; public `/api/war-room/*` contract smoke-tested green against live Gemini.
 
 ### Phase 7 — War Room: Assumption Map
 - [ ] Build `components/war-room/AssumptionMap.tsx` — React Flow, color-coded by status, sized by risk, network layout
@@ -675,13 +678,14 @@ The War Room session UI **must** match `frontend/inspo.html` visually. Read the 
 - [x] Phase 3
 - [x] Phase 4
 - [x] Phase 5 *(code complete + DB tested; live auth E2E gated on Auth0 dashboard/env)*
-- [ ] Phase 6
+- [x] Phase 6 *(code complete: `WarRoomArena.tsx` arena + orchestration + persistence; tsc/build clean, LLM routes smoke-tested; live browser E2E gated on Auth0)*
 - [ ] Phase 7
 - [ ] Phase 8
 
-> **Next task:** Phase 6 — The Debate (open `inspo.html` first; see the ⚠️ pre-Phase-6 note above).
-> 1. Build `components/war-room/DebateTranscript.tsx` — agent avatars, accent borders, typing indicators, Framer Motion reveal.
-> 2. Build the orchestration hook: R1 (×3) → R2 (×3) → R3 closings (×3) → assumptions synthesis (×1), each gated by its own loading state; pass the full transcript-so-far to every call.
-> 3. Persist via `PATCH /v1/sessions/:id` — reuse the Phase 5 BFF pattern: add `app/api/sessions/[id]/route.ts` (GET/PATCH) that forwards through `forwardToBackend` (`lib/backend.ts`).
+> **Next task:** Phase 7 — The Assumption Map (React Flow). The session, debate, and synthesis already produce + persist the assumptions; Phase 6's "ready" interstitial in `WarRoomArena.tsx` is the cross-fade target the map replaces.
+> 1. Build `components/war-room/AssumptionMap.tsx` — React Flow, color-coded by status, **uncertainty-first** (UNVALIDATED/NEEDS_INFO nodes larger/louder than VALIDATED), network layout (not a tree). Read nodes from the canvas (source of truth).
+> 2. Node side-panel: claim + explanation + agent reasoning + validate/modify/remove form + per-node honesty microcopy + `howToTest` surfaced as the concrete next step.
+> 3. Wire remediation: update node status on the canvas and `PATCH /api/sessions/[id] { canvas }`; the node visibly changes *because the founder acted* (legible HITL).
+> 4. Persistent results-screen disclaimer banner + "→ Launchpad" CTA. See the full **Responsible AI** checklist in the Phase 7 section above — it's a scored 10% category, do not reduce it to one banner.
 >
-> **Before live-testing Phase 6:** complete the Auth0 setup (dashboard + env) so a real session exists to debate against — see "Auth pattern" under Architectural Decisions.
+> **To unblock live E2E (Phases 5–7):** complete the Auth0 dashboard items — paste real `AUTH0_CLIENT_ID`/`AUTH0_CLIENT_SECRET` into `frontend/.env.local` and add the Login-flow Action setting `email`/`name`/`picture` custom claims on the access token (else `GET /v1/auth/sync` 400s). See "Auth pattern" under Architectural Decisions.
