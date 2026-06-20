@@ -4,7 +4,10 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export class BackendAuthError extends Error {}
 export class BackendError extends Error {
-  constructor(message: string, readonly status: number) {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
     super(message);
   }
 }
@@ -19,7 +22,7 @@ export class BackendError extends Error {
  */
 export const forwardToBackend = async (
   path: string,
-  init?: RequestInit
+  init?: RequestInit,
 ): Promise<Response> => {
   if (!BACKEND_URL) {
     throw new BackendError("NEXT_PUBLIC_BACKEND_URL is not configured", 500);
@@ -34,10 +37,13 @@ export const forwardToBackend = async (
   }
 
   if (!token) {
-    console.error("[backend] getAccessToken() returned no token — check AUTH0_AUDIENCE in frontend .env.local");
+    console.error(
+      "[backend] getAccessToken() returned no token — check AUTH0_AUDIENCE in frontend .env.local",
+    );
     throw new BackendAuthError("Not authenticated");
   }
 
+  console.log("Fetching backend" + `${BACKEND_URL}${path}`);
   return fetch(`${BACKEND_URL}${path}`, {
     ...init,
     headers: {
@@ -46,7 +52,7 @@ export const forwardToBackend = async (
     },
     cache: "no-store",
   });
-}
+};
 
 /**
  * Idempotently upserts the local User row via GET /v1/auth/sync. requireUser on
@@ -60,7 +66,7 @@ export const ensureUserSynced = async (): Promise<void> => {
     const detail = await res.text().catch(() => "");
     throw new BackendError(
       `Account sync failed (${res.status}). ${detail}`.trim(),
-      res.status
+      res.status,
     );
   }
-}
+};
