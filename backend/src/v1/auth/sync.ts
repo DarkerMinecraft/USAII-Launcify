@@ -27,25 +27,22 @@ router.get("/sync", async (req, res) => {
 
   const provider = auth0Id.startsWith("google-oauth2") ? "google" : "auth0";
 
-  const user = await prisma.user.upsert({
-    where: {
-      auth0Id,
-    },
-    update: {
-      email,
-      name,
-      picture,
-    },
-    create: {
-      auth0Id,
-      email,
-      name,
-      picture,
-      provider,
-    },
-  });
-
-  return res.json(user);
+  try {
+    const user = await prisma.user.upsert({
+      where: { auth0Id },
+      update: { email, name, picture },
+      create: { auth0Id, email, name, picture, provider },
+    });
+    return res.json(user);
+  } catch (e: unknown) {
+    const err = e as { code?: string; message?: string; meta?: unknown };
+    console.error("[sync] Prisma error:", err.code, err.message, err.meta);
+    return res.status(500).json({
+      error: "db_error",
+      code: err.code,
+      message: err.message,
+    });
+  }
 });
 
 export default router;
