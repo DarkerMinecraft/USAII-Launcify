@@ -43,7 +43,6 @@ export const forwardToBackend = async (
     throw new BackendAuthError("Not authenticated");
   }
 
-  console.log("Fetching backend" + `${BACKEND_URL}${path}`);
   return fetch(`${BACKEND_URL}${path}`, {
     ...init,
     headers: {
