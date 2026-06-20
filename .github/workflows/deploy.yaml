@@ -133,8 +133,7 @@ jobs:
 
             echo "Installing dependencies..."
             npm install
-            npx prisma generate --config prisma.config.ts
-            npx prisma migrate deploy --config prisma.config.ts
+            npx prisma generate
             npm run build
 
             echo "PM2 status:"
