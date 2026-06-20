@@ -180,4 +180,4 @@ When the founder validates a node, the map updates in real time. The Launchpad r
 ---
 
 *Built for USAII Global AI Hackathon 2026 · Challenge Brief 3 · Direction B*
-*Live demo: [usaii.darkermine.dev](https://usaii.darkermine.dev)*
+*Live demo: [launchify.darkermine.dev](https://launchify.darkermine.dev)*
