@@ -17,6 +17,6 @@ export const config = {
   matcher: [
     // Run on everything except Next internals, static assets, and the public
     // LLM routes (/api/war-room/* are unauthenticated by design).
-    "/((?!_next/static|_next/image|favicon.ico|api/war-room|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/war-room|api/launchpad|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

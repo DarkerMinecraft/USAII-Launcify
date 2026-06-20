@@ -10,6 +10,7 @@ import type {
   DebateMessage,
   QA,
 } from "@/lib/types";
+import { AssumptionMap } from "@/components/war-room/AssumptionMap";
 
 // ── Debate choreography ──────────────────────────────────────────────────────
 // Round 1 → Round 2 → Round 3, each Skeptic → Strategist → Operator. The map
@@ -101,6 +102,7 @@ export function WarRoomArena({ id }: { id: string }) {
   const [activeAgent, setActiveAgent] = useState<AgentRole | null>(null);
   const [thinkingRound, setThinkingRound] = useState<1 | 2 | 3 | null>(null);
   const [assumptionCount, setAssumptionCount] = useState(0);
+  const [assumptions, setAssumptions] = useState<AssumptionNode[]>([]);
 
   const [error, setError] = useState<string | null>(null);
   const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
@@ -158,24 +160,25 @@ export function WarRoomArena({ id }: { id: string }) {
         if (!res.ok) {
           throw new Error(data?.error ?? "Could not build the assumption map");
         }
-        const assumptions: AssumptionNode[] = Array.isArray(data?.assumptions)
+        const assumptionNodes: AssumptionNode[] = Array.isArray(data?.assumptions)
           ? data.assumptions
           : [];
-        setAssumptionCount(assumptions.length);
+        setAssumptionCount(assumptionNodes.length);
+        setAssumptions(assumptionNodes);
 
         // Canvas JSON is the source of truth; the AssumptionNode rows are for
         // querying (locked architectural decision). Persist both + mark COMPLETE.
         const canvas: Canvas = {
           ideaSummary: idea,
           questionnaireResponses: responses,
-          assumptions,
+          assumptions: assumptionNodes,
           lastUpdated: new Date().toISOString(),
         };
         try {
           const save = await fetch(`/api/sessions/${id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ canvas, assumptions, status: "COMPLETE" }),
+            body: JSON.stringify({ canvas, assumptions: assumptionNodes, status: "COMPLETE" }),
           });
           if (!save.ok) setPersistWarned(true);
         } catch {
@@ -298,9 +301,10 @@ export function WarRoomArena({ id }: { id: string }) {
           ? rowAssumptions
           : [];
 
-      // Already finished — jump straight to the ready interstitial.
+      // Already finished — jump straight to the assumption map.
       if (data?.status === "COMPLETE" || completedAssumptions.length > 0) {
         setAssumptionCount(completedAssumptions.length);
+        setAssumptions(completedAssumptions as AssumptionNode[]);
         setPhase("ready");
         return;
       }
@@ -373,7 +377,16 @@ export function WarRoomArena({ id }: { id: string }) {
             transition={{ duration: 0.7 }}
             className="flex flex-1 flex-col"
           >
-            <ReadyInterstitial assumptionCount={assumptionCount} />
+            {assumptions.length > 0 ? (
+              <AssumptionMap
+                sessionId={id}
+                assumptions={assumptions}
+                ideaSummary={ideaSummary}
+                questionnaire={questionnaire}
+              />
+            ) : (
+              <ReadyInterstitial assumptionCount={assumptionCount} />
+            )}
           </motion.div>
         ) : (
           <motion.div
