@@ -1,4 +1,5 @@
 import { Auth0Client } from "@auth0/nextjs-auth0/server";
+import { NextResponse } from "next/server";
 
 // Server-side Auth0 client. Domain, client id/secret, AUTH0_SECRET and
 // APP_BASE_URL are read from env automatically. We request an access token for
@@ -28,4 +29,30 @@ export const auth0 = new Auth0Client({
       idToken: undefined,
     },
   }),
+
+  // Sync the user to our database immediately after every login so that
+  // requireUser() on the backend never sees a missing User row — even before
+  // the founder has created their first session.
+  onCallback: async (error, ctx, session) => {
+    const base = ctx.appBaseUrl ?? process.env.APP_BASE_URL ?? "http://localhost:3000";
+
+    if (error) {
+      return NextResponse.redirect(new URL("/", base));
+    }
+
+    if (session?.tokenSet.accessToken) {
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/v1/auth/sync`, {
+          method: "GET",
+          headers: { Authorization: `Bearer ${session.tokenSet.accessToken}` },
+          cache: "no-store",
+        });
+      } catch (err) {
+        // Non-fatal — ensureUserSynced() in backend.ts will retry on first API call.
+        console.error("[auth] login sync failed:", err);
+      }
+    }
+
+    return NextResponse.redirect(new URL(ctx.returnTo ?? "/", base));
+  },
 });

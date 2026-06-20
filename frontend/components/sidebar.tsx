@@ -25,7 +25,7 @@ const pillars = [
   },
   {
     label: "Pitch Coach",
-    href: "/pitch-session",
+    href: "/pitch-coach",
     icon: Mic,
     locked: false,
     description: "Practice & perform",
