@@ -11,6 +11,8 @@ import type {
   QA,
 } from "@/lib/types";
 import { AssumptionMap } from "@/components/war-room/assumption-map";
+import { generateDebateRound, generateAssumptions } from "@/actions/war-room";
+import { getSession, updateSession } from "@/actions/sessions";
 
 const DEBATE_STEPS: { agent: AgentRole; round: 1 | 2 | 3 }[] = [
   { agent: "SKEPTIC", round: 1 },
@@ -74,12 +76,7 @@ export const WarRoomArena = ({ id }: { id: string }) => {
   const persistMessages = useCallback(
     async (roundMessages: DebateMessage[]) => {
       try {
-        const res = await fetch(`/api/sessions/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: roundMessages }),
-        });
-        if (!res.ok) setPersistWarned(true);
+        await updateSession(id, { messages: roundMessages });
       } catch {
         setPersistWarned(true);
       }
@@ -95,14 +92,8 @@ export const WarRoomArena = ({ id }: { id: string }) => {
       setErrorKind(null);
       setPhase("synthesizing");
       try {
-        const res = await fetch("/api/war-room/assumptions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ideaSummary: idea, questionnaireResponses: responses, transcript }),
-        });
-        const data = await res.json().catch(() => null);
-        if (!res.ok) throw new Error(data?.error ?? "Could not build the assumption map");
-        const assumptionNodes: AssumptionNode[] = Array.isArray(data?.assumptions) ? data.assumptions : [];
+        const data = await generateAssumptions({ ideaSummary: idea, questionnaireResponses: responses, transcript });
+        const assumptionNodes: AssumptionNode[] = data.assumptions;
         setAssumptionCount(assumptionNodes.length);
         setAssumptions(assumptionNodes);
 
@@ -113,12 +104,7 @@ export const WarRoomArena = ({ id }: { id: string }) => {
           lastUpdated: new Date().toISOString(),
         };
         try {
-          const save = await fetch(`/api/sessions/${id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ canvas, assumptions: assumptionNodes, status: "COMPLETE" }),
-          });
-          if (!save.ok) setPersistWarned(true);
+          await updateSession(id, { canvas, assumptions: assumptionNodes, status: "COMPLETE" });
         } catch {
           setPersistWarned(true);
         }
@@ -146,15 +132,7 @@ export const WarRoomArena = ({ id }: { id: string }) => {
         setActiveAgent(agent);
         setThinkingRound(round);
         try {
-          const res = await fetch("/api/war-room/debate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ agent, round, ideaSummary: idea, questionnaireResponses: responses, transcript: working }),
-          });
-          const data = await res.json().catch(() => null);
-          if (!res.ok || typeof data?.content !== "string") {
-            throw new Error(data?.error ?? "The advisor did not respond");
-          }
+          const data = await generateDebateRound({ agent, round, ideaSummary: idea, questionnaireResponses: responses, transcript: working });
           working = [...working, { agent, round, content: data.content }];
           setMessages(working);
           setThinkingRound(null);
@@ -187,9 +165,8 @@ export const WarRoomArena = ({ id }: { id: string }) => {
     setError(null);
     setErrorKind(null);
     try {
-      const res = await fetch(`/api/sessions/${id}`);
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error ?? "Could not load this session");
+      const data = await getSession(id);
+      if (!data) throw new Error("Could not load this session");
 
       const idea: string = typeof data?.ideaSummary === "string" ? data.ideaSummary : "";
       const responses: QA[] = Array.isArray(data?.questionnaireResponses) ? data.questionnaireResponses : [];

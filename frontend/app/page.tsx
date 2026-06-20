@@ -91,7 +91,7 @@ const Home = async () => {
           className="font-mono text-center mt-14 leading-relaxed"
           style={{ ...eyebrow, fontSize: "8.5px", color: "#3a3833" }}
         >
-          FOUNDR surfaces information. The founder decides what to do with it.
+          Launchify surfaces information. The founder decides what to do with it.
         </p>
       </div>
     );
@@ -182,7 +182,7 @@ const Home = async () => {
         className="font-mono text-center mt-12 max-w-md leading-relaxed uppercase"
         style={{ fontSize: "8.5px", letterSpacing: "0.1em", color: "#5a574f" }}
       >
-        FOUNDR surfaces information. The founder decides what to do with it.
+        Launchify surfaces information. The founder decides what to do with it.
         This analysis does not replace talking to real customers.
       </p>
     </div>

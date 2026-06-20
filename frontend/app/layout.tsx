@@ -25,7 +25,7 @@ const spectral = Spectral({
 });
 
 export const metadata: Metadata = {
-  title: "FOUNDR — AI Startup Co-Pilot",
+  title: "Launchify — AI Startup Co-Pilot",
   description: "Stress-test your startup idea with AI agents before the market does.",
 };
 

@@ -9,6 +9,7 @@ import {
   Users, FileText, AlertTriangle, Swords,
 } from "lucide-react";
 import type { Canvas } from "@/lib/types";
+import { generateOutreach, generateSummary } from "@/actions/launchpad";
 
 interface OutreachResult {
   targetAssumption: string;
@@ -190,14 +191,8 @@ const CustomerConnectCard = ({ canvas }: { canvas: Canvas }) => {
     setState("loading");
     setError(null);
     try {
-      const res = await fetch("/api/launchpad/outreach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ canvas }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error ?? "Generation failed");
-      setResult(data as OutreachResult);
+      const data = await generateOutreach(canvas);
+      setResult(data as unknown as OutreachResult);
       setState("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not generate outreach");
@@ -230,14 +225,8 @@ const ExecutiveSummaryCard = ({ canvas }: { canvas: Canvas }) => {
     setState("loading");
     setError(null);
     try {
-      const res = await fetch("/api/launchpad/summary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ canvas }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error ?? "Generation failed");
-      setResult(data as SummaryResult);
+      const data = await generateSummary(canvas);
+      setResult(data as unknown as SummaryResult);
       setState("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not generate summary");

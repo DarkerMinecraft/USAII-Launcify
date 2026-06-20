@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GeminiLiveClient, type SessionState } from '@/lib/gemini-live-client';
+import { getGeminiToken } from '@/actions/gemini';
 
 let _activeClient: GeminiLiveClient | null = null;
 
@@ -90,9 +91,7 @@ export const SessionUi = () => {
 
     const init = async () => {
       try {
-        const res = await fetch('/api/gemini-token', { method: 'POST' });
-        if (!res.ok) throw new Error('Failed to get API token');
-        const { apiKey, model } = await res.json();
+        const { apiKey, model } = await getGeminiToken();
         if (cancelled) return;
 
         const client = new GeminiLiveClient(
@@ -284,7 +283,7 @@ export const SessionUi = () => {
     <div className="h-dvh flex flex-col bg-zinc-950 text-white overflow-hidden">
 
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
-        <span className="font-semibold text-base tracking-tight">USAII Pitch Coach</span>
+        <span className="font-semibold text-base tracking-tight">Launchify Pitch Session</span>
         <div className="flex items-center gap-2">
           {sessionState === 'connecting' || sessionState === 'reconnecting'
             ? <Loader2 className="w-4 h-4 animate-spin text-yellow-400" />

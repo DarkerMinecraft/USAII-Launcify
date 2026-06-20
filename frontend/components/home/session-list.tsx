@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Loader2, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { listSessions } from "@/actions/sessions";
 
 interface Session {
   id: string;
@@ -41,12 +42,8 @@ export const SessionList = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/sessions")
-      .then(async (r) => {
-        const data = await r.json().catch(() => null);
-        if (!r.ok) throw new Error(data?.error ?? "Could not load sessions");
-        setSessions(Array.isArray(data) ? data : []);
-      })
+    listSessions()
+      .then((data) => setSessions(Array.isArray(data) ? data : []))
       .catch((err: unknown) => setError(err instanceof Error ? err.message : "Could not load sessions"))
       .finally(() => setLoading(false));
   }, []);

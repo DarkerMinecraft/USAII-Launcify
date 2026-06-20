@@ -24,8 +24,8 @@ const pillars = [
     accentColor: "#6fa37e",
   },
   {
-    label: "Pitch Coach",
-    href: "/pitch-coach",
+    label: "Pitch Session",
+    href: "/pitch-session",
     icon: Mic,
     locked: false,
     description: "Practice & perform",
@@ -66,7 +66,7 @@ export const Sidebar = () => {
               className="font-serif font-semibold leading-none"
               style={{ color: "#ede9e0", fontSize: "15px" }}
             >
-              FOUNDR
+              Launchify
             </span>
             <span
               className="font-mono leading-none uppercase"

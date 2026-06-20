@@ -7,6 +7,8 @@ import { ArrowRight, Loader2, Sparkles } from "lucide-react";
 import { DEFAULT_QUESTIONS, hasAnsweredQuestionnaire } from "@/lib/questionnaire";
 import { Textarea } from "@/components/ui/textarea";
 import type { QA } from "@/lib/types";
+import { generateQuestions as generateQuestionsAction } from "@/actions/war-room";
+import { createSession } from "@/actions/sessions";
 
 type Stage = "intake" | "questionnaire";
 
@@ -36,16 +38,8 @@ export const Questionnaire = () => {
     setError(null);
     setLoadingQuestions(true);
     try {
-      const res = await fetch("/api/war-room/questions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ideaSummary: idea.trim() }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.error ?? "Could not generate questions");
-      }
-      const aiQuestions: string[] = Array.isArray(data?.questions) ? data.questions : [];
+      const data = await generateQuestionsAction(idea.trim());
+      const aiQuestions: string[] = data.questions;
       const all = [...DEFAULT_QUESTIONS, ...aiQuestions];
       setQuestions(all);
       setAnswers(new Array(all.length).fill(""));
@@ -71,16 +65,8 @@ export const Questionnaire = () => {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch("/api/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ideaSummary: idea.trim(), questionnaireResponses: qa }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.error ?? "Could not create your session");
-      }
-      router.push(`/war-room/session/${data.id}`);
+      const data = await createSession(idea.trim(), qa);
+      router.push(`/war-room/session/${data!.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSubmitting(false);
