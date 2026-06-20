@@ -1,8 +1,7 @@
+import "./env";
+
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
-
-import dotenv from "dotenv";
-dotenv.config();
 
 import syncRouter from "./v1/auth/sync";
 import sessionsRouter from "./v1/sessions";
