@@ -15,15 +15,14 @@ export class LLMError extends Error {
   }
 }
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
+const errorMessage = (err: unknown): string =>
+  err instanceof Error ? err.message : String(err);
 
-export async function callLLM(
+export const callLLM = async (
   systemPrompt: string,
   userPrompt: string,
   options: CallOptions = {}
-): Promise<string> {
+): Promise<string> => {
   try {
     return await callGemini(systemPrompt, userPrompt, options);
   } catch (err) {

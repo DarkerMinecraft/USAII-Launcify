@@ -1,8 +1,8 @@
 import { Swords, LogIn } from "lucide-react";
 import { auth0 } from "@/lib/auth0";
-import { Questionnaire } from "@/components/war-room/Questionnaire";
+import { Questionnaire } from "@/components/war-room/questionnaire";
 
-export default async function WarRoomPage() {
+const WarRoomPage = async () => {
   const session = await auth0.getSession();
 
   if (!session) {
@@ -51,4 +51,5 @@ export default async function WarRoomPage() {
   }
 
   return <Questionnaire />;
-}
+};
+export default WarRoomPage;

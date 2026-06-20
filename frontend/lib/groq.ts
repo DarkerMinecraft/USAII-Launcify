@@ -15,15 +15,14 @@ interface CallOptions {
   temperature?: number;
 }
 
-function stripReasoning(text: string): string {
-  return text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-}
+const stripReasoning = (text: string): string =>
+  text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
 
-export async function callGroq(
+export const callGroq = async (
   systemPrompt: string,
   userPrompt: string,
   options: CallOptions = {}
-): Promise<string> {
+): Promise<string> => {
   if (!process.env.GROQ_API_KEY) {
     throw new GroqError("GROQ_API_KEY is not set");
   }

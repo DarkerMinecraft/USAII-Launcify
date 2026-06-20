@@ -3,7 +3,7 @@ import { callLLM, parseJSON, LLMError, GeminiParseError } from "@/lib/llm";
 import { SUMMARY_SYSTEM, buildSummaryPrompt } from "@/prompts/agents";
 import type { Canvas } from "@/lib/types";
 
-export async function POST(req: NextRequest) {
+export const POST = async (req: NextRequest) => {
   let body: { canvas?: Canvas };
   try {
     body = await req.json();

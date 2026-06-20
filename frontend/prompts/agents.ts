@@ -71,7 +71,7 @@ Example: ["Question one?", "Question two?", "Question three?"]`;
 
 // ─── Round context builders ───────────────────────────────────────────────────
 
-function formatQA(questionnaire: QA[]): string {
+const formatQA = (questionnaire: QA[]): string => {
   return questionnaire
     .map((q, i) => {
       const rawAnswer = typeof q.answer === "string" ? q.answer : "";
@@ -81,13 +81,13 @@ function formatQA(questionnaire: QA[]): string {
     .join("\n\n");
 }
 
-function formatTranscript(transcript: DebateMessage[]): string {
+const formatTranscript = (transcript: DebateMessage[]): string => {
   return transcript
     .map((m) => `[${m.agent} — Round ${m.round}]\n${m.content}`)
     .join("\n\n---\n\n");
 }
 
-export function buildRound1Prompt(ideaSummary: string, questionnaire: QA[]): string {
+export const buildRound1Prompt = (ideaSummary: string, questionnaire: QA[]): string => {
   return `You are in Round 1 (Opening Statements) of a War Room debate.
 
 FOUNDER'S IDEA:
@@ -102,11 +102,11 @@ Give your opening statement. Surface 1–2 of the most important concerns or que
 // Callers may pass the entire running transcript; these builders slice out the
 // rounds each prompt should actually see, so context stays spec-correct
 // regardless of what the orchestration hook passes in.
-export function buildRound2Prompt(
+export const buildRound2Prompt = (
   ideaSummary: string,
   questionnaire: QA[],
   transcript: DebateMessage[]
-): string {
+): string => {
   const round1 = transcript.filter((m) => m.round === 1);
   return `You are in Round 2 (Responses) of a War Room debate.
 
@@ -122,11 +122,11 @@ ${formatTranscript(round1)}
 Respond to what the other advisors said in Round 1. Agree, push back, or add a new angle — but engage directly with their specific points. Genuine disagreement is expected. Do not simply repeat your Round 1 statement.`;
 }
 
-export function buildRound3Prompt(
+export const buildRound3Prompt = (
   ideaSummary: string,
   questionnaire: QA[],
   transcript: DebateMessage[]
-): string {
+): string => {
   // Closing statements reflect on the actual debate (Rounds 1–2), not on peers'
   // closings — so each agent's synthesis is independent.
   const debate = transcript.filter((m) => m.round < 3);
@@ -146,7 +146,7 @@ Give your closing statement. Identify the 1–2 most critical unresolved questio
 
 // ─── Canvas formatters (shared by Launchpad prompts) ─────────────────────────
 
-function formatQAForCanvas(responses: QA[]): string {
+const formatQAForCanvas = (responses: QA[]): string => {
   return responses
     .map((q, i) => {
       const answer = typeof q.answer === "string" && q.answer.trim() ? q.answer : "(left blank)";
@@ -155,7 +155,7 @@ function formatQAForCanvas(responses: QA[]): string {
     .join("\n\n");
 }
 
-function formatAssumptionsForCanvas(assumptions: AssumptionNode[]): string {
+const formatAssumptionsForCanvas = (assumptions: AssumptionNode[]): string => {
   return assumptions
     .map((a) => {
       const reviewedTag = a.remediation ? ` [REVIEWED BY FOUNDER: ${a.remediation.action}]` : "";
@@ -180,7 +180,7 @@ Rules:
 - End with 2–3 sentences of personalization guidance (what to research before sending)
 - Return a JSON object — no markdown, no explanation, raw JSON only`;
 
-export function buildOutreachPrompt(canvas: Canvas): string {
+export const buildOutreachPrompt = (canvas: Canvas): string => {
   const riskAssumptions = canvas.assumptions.filter(
     (a) => (a.status === "UNVALIDATED" || a.status === "NEEDS_INFO") && !a.remediation
   );
@@ -227,7 +227,7 @@ Rules:
 - Never say "this will succeed" or imply the idea is proven
 - Return a JSON object — no markdown, no explanation, raw JSON only`;
 
-export function buildSummaryPrompt(canvas: Canvas): string {
+export const buildSummaryPrompt = (canvas: Canvas): string => {
   const unvalidated = canvas.assumptions.filter(
     (a) => (a.status === "UNVALIDATED" || a.status === "NEEDS_INFO") && !a.remediation
   );
@@ -260,11 +260,11 @@ Return this JSON exactly:
 }`;
 }
 
-export function buildAssumptionMapPrompt(
+export const buildAssumptionMapPrompt = (
   ideaSummary: string,
   questionnaire: QA[],
   fullTranscript: DebateMessage[]
-): string {
+): string => {
   return `Synthesize the War Room debate below into a structured Assumption Map.
 
 FOUNDER'S IDEA:

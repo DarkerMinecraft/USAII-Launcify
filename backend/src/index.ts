@@ -51,7 +51,8 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     });
   }
 
-  next(err);
+  console.error("[error]", err instanceof Error ? err.message : err);
+  return res.status(500).json({ error: "internal_server_error" });
 });
 
 app.listen(3001, () => {

@@ -11,6 +11,5 @@ export const DEFAULT_QUESTIONS: readonly string[] = [
   "What's the single biggest thing that could kill this idea?",
 ];
 
-export function hasAnsweredQuestionnaire(questionnaire: QA[]): boolean {
-  return questionnaire.some((q) => typeof q.answer === "string" && q.answer.trim().length > 0);
-}
+export const hasAnsweredQuestionnaire = (questionnaire: QA[]): boolean =>
+  questionnaire.some((q) => typeof q.answer === "string" && q.answer.trim().length > 0);

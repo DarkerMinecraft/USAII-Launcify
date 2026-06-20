@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import type { Canvas } from "@/lib/types";
 
-// ── Result types ───────────────────────────────────────────────────────────────
 interface OutreachResult {
   targetAssumption: string;
   targetProfile: string;
@@ -30,7 +29,6 @@ interface SummaryResult {
   nextSteps: string[];
 }
 
-// ── Shared style tokens ────────────────────────────────────────────────────────
 const eyebrow: React.CSSProperties = {
   fontSize: "9px",
   letterSpacing: "0.16em",
@@ -38,8 +36,7 @@ const eyebrow: React.CSSProperties = {
   color: "#5a574f",
 };
 
-// ── Copy button hook ───────────────────────────────────────────────────────────
-function useCopy() {
+const useCopy = () => {
   const [copied, setCopied] = useState(false);
   const copy = useCallback((text: string) => {
     void navigator.clipboard.writeText(text);
@@ -47,10 +44,9 @@ function useCopy() {
     setTimeout(() => setCopied(false), 2200);
   }, []);
   return { copied, copy };
-}
+};
 
-// ── Main client component ──────────────────────────────────────────────────────
-export function LaunchpadClient() {
+export const LaunchpadClient = () => {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
 
@@ -77,7 +73,6 @@ export function LaunchpadClient() {
       });
   }, [sessionId]);
 
-  // ── No session (derived — no setState needed) ──
   if (!sessionId) {
     return (
       <PageShell>
@@ -102,7 +97,6 @@ export function LaunchpadClient() {
     );
   }
 
-  // ── Loading (only reached when sessionId is set) ──
   if (loadState === "loading") {
     return (
       <PageShell>
@@ -114,7 +108,6 @@ export function LaunchpadClient() {
     );
   }
 
-  // ── Error ──
   if (loadState === "error" || !canvas) {
     return (
       <PageShell>
@@ -129,7 +122,6 @@ export function LaunchpadClient() {
     );
   }
 
-  // ── Ready ──
   const unvalidatedCount = canvas.assumptions.filter(
     (a) => (a.status === "UNVALIDATED" || a.status === "NEEDS_INFO") && !a.remediation
   ).length;
@@ -139,7 +131,6 @@ export function LaunchpadClient() {
 
   return (
     <PageShell>
-      {/* Back nav */}
       {sessionId && (
         <div className="px-10 pt-8 pb-0">
           <Link
@@ -153,7 +144,6 @@ export function LaunchpadClient() {
         </div>
       )}
 
-      {/* Page header */}
       <div className="px-10 pt-7 pb-6" style={{ borderBottom: "1px solid #2e2c28" }}>
         <h1 className="font-serif italic" style={{ fontSize: "30px", color: "#ede9e0", lineHeight: 1.1 }}>
           Launchpad
@@ -162,7 +152,6 @@ export function LaunchpadClient() {
           Stop thinking. Start doing.
         </p>
 
-        {/* Canvas context bar */}
         <div
           className="flex items-start gap-4 mt-5 p-4 rounded-[11px]"
           style={{ background: "#15140f", border: "1px solid #2e2c28" }}
@@ -184,22 +173,20 @@ export function LaunchpadClient() {
         </div>
       </div>
 
-      {/* Tools grid */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-px flex-1" style={{ background: "#2e2c28" }}>
         <CustomerConnectCard canvas={canvas} />
         <ExecutiveSummaryCard canvas={canvas} />
       </div>
     </PageShell>
   );
-}
+};
 
-// ── Customer Connect card ──────────────────────────────────────────────────────
-function CustomerConnectCard({ canvas }: { canvas: Canvas }) {
+const CustomerConnectCard = ({ canvas }: { canvas: Canvas }) => {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [result, setResult] = useState<OutreachResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function generate() {
+  const generate = async () => {
     setState("loading");
     setError(null);
     try {
@@ -216,7 +203,7 @@ function CustomerConnectCard({ canvas }: { canvas: Canvas }) {
       setError(err instanceof Error ? err.message : "Could not generate outreach");
       setState("error");
     }
-  }
+  };
 
   return (
     <ToolCard
@@ -232,15 +219,14 @@ function CustomerConnectCard({ canvas }: { canvas: Canvas }) {
       {result && <OutreachResults result={result} />}
     </ToolCard>
   );
-}
+};
 
-// ── Executive Summary card ─────────────────────────────────────────────────────
-function ExecutiveSummaryCard({ canvas }: { canvas: Canvas }) {
+const ExecutiveSummaryCard = ({ canvas }: { canvas: Canvas }) => {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [result, setResult] = useState<SummaryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function generate() {
+  const generate = async () => {
     setState("loading");
     setError(null);
     try {
@@ -257,7 +243,7 @@ function ExecutiveSummaryCard({ canvas }: { canvas: Canvas }) {
       setError(err instanceof Error ? err.message : "Could not generate summary");
       setState("error");
     }
-  }
+  };
 
   return (
     <ToolCard
@@ -273,10 +259,9 @@ function ExecutiveSummaryCard({ canvas }: { canvas: Canvas }) {
       {result && <SummaryResults result={result} />}
     </ToolCard>
   );
-}
+};
 
-// ── Tool card shell ────────────────────────────────────────────────────────────
-function ToolCard({
+const ToolCard = ({
   icon, title, subtitle, description, accentColor,
   onGenerate, state, error, children,
 }: {
@@ -289,104 +274,78 @@ function ToolCard({
   state: "idle" | "loading" | "done" | "error";
   error: string | null;
   children?: React.ReactNode;
-}) {
-  return (
-    <div
-      className="flex flex-col"
-      style={{ background: "#0f0e0c", minHeight: "520px" }}
-    >
-      {/* Card header */}
-      <div
-        className="px-8 pt-8 pb-6"
-        style={{ borderBottom: "1px solid #2e2c28" }}
-      >
-        <div className="flex items-center gap-2.5 mb-4">
-          {icon}
-          <span
-            className="font-mono uppercase"
-            style={{ fontSize: "9px", letterSpacing: "0.16em", color: accentColor }}
-          >
-            {title}
-          </span>
-        </div>
-        <h2 className="font-serif italic" style={{ fontSize: "20px", color: "#ede9e0", lineHeight: 1.2, marginBottom: "10px" }}>
-          {subtitle}
-        </h2>
-        <p style={{ fontSize: "13px", color: "#7a7670", lineHeight: 1.6 }}>
-          {description}
-        </p>
+}) => (
+  <div className="flex flex-col" style={{ background: "#0f0e0c", minHeight: "520px" }}>
+    <div className="px-8 pt-8 pb-6" style={{ borderBottom: "1px solid #2e2c28" }}>
+      <div className="flex items-center gap-2.5 mb-4">
+        {icon}
+        <span className="font-mono uppercase" style={{ fontSize: "9px", letterSpacing: "0.16em", color: accentColor }}>
+          {title}
+        </span>
       </div>
-
-      {/* Generate button / loading */}
-      <div className="px-8 py-5" style={{ borderBottom: "1px solid #1f1e1b" }}>
-        {state === "idle" || state === "error" ? (
-          <button
-            onClick={onGenerate}
-            className="inline-flex items-center gap-2 font-semibold transition-colors"
-            style={{
-              background: "#ede9e0", color: "#131210",
-              borderRadius: "8px", padding: "9px 18px", fontSize: "13.5px",
-              cursor: "pointer",
-            }}
-          >
-            Generate
-          </button>
-        ) : state === "loading" ? (
-          <div className="flex items-center gap-3">
-            <Loader2 className="w-4 h-4 animate-spin" style={{ color: accentColor }} />
-            <span className="font-mono" style={{ ...eyebrow, color: "#7a7670" }}>
-              Reading your canvas…
-            </span>
-          </div>
-        ) : (
-          <button
-            onClick={onGenerate}
-            className="inline-flex items-center gap-2 font-mono transition-colors"
-            style={{ ...eyebrow, color: "#5a574f", cursor: "pointer", background: "none", border: "none", padding: 0 }}
-          >
-            Regenerate
-          </button>
-        )}
-
-        {state === "error" && error && (
-          <div className="flex items-center gap-2 mt-3">
-            <AlertCircle className="w-3.5 h-3.5 shrink-0" style={{ color: "#c2692a" }} />
-            <p style={{ fontSize: "12.5px", color: "#9a958c" }}>{error}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Results area */}
-      <div className="flex-1 overflow-y-auto">
-        <AnimatePresence mode="wait">
-          {state === "done" && children && (
-            <motion.div
-              key="results"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35 }}
-            >
-              {children}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      <h2 className="font-serif italic" style={{ fontSize: "20px", color: "#ede9e0", lineHeight: 1.2, marginBottom: "10px" }}>
+        {subtitle}
+      </h2>
+      <p style={{ fontSize: "13px", color: "#7a7670", lineHeight: 1.6 }}>{description}</p>
     </div>
-  );
-}
 
-// ── Outreach results ───────────────────────────────────────────────────────────
-function OutreachResults({ result }: { result: OutreachResult }) {
+    <div className="px-8 py-5" style={{ borderBottom: "1px solid #1f1e1b" }}>
+      {state === "idle" || state === "error" ? (
+        <button
+          onClick={onGenerate}
+          className="inline-flex items-center gap-2 font-semibold transition-colors"
+          style={{ background: "#ede9e0", color: "#131210", borderRadius: "8px", padding: "9px 18px", fontSize: "13.5px", cursor: "pointer" }}
+        >
+          Generate
+        </button>
+      ) : state === "loading" ? (
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-4 h-4 animate-spin" style={{ color: accentColor }} />
+          <span className="font-mono" style={{ ...eyebrow, color: "#7a7670" }}>Reading your canvas…</span>
+        </div>
+      ) : (
+        <button
+          onClick={onGenerate}
+          className="inline-flex items-center gap-2 font-mono transition-colors"
+          style={{ ...eyebrow, color: "#5a574f", cursor: "pointer", background: "none", border: "none", padding: 0 }}
+        >
+          Regenerate
+        </button>
+      )}
+
+      {state === "error" && error && (
+        <div className="flex items-center gap-2 mt-3">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" style={{ color: "#c2692a" }} />
+          <p style={{ fontSize: "12.5px", color: "#9a958c" }}>{error}</p>
+        </div>
+      )}
+    </div>
+
+    <div className="flex-1 overflow-y-auto">
+      <AnimatePresence mode="wait">
+        {state === "done" && children && (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  </div>
+);
+
+const OutreachResults = ({ result }: { result: OutreachResult }) => {
   const emailCopy = useCopy();
   const linkedinCopy = useCopy();
-
   const emailText = `Subject: ${result.email.subject}\n\n${result.email.body}`;
 
   return (
     <div className="flex flex-col gap-6 px-8 py-6">
-
-      {/* Target */}
       <div>
         <Label>Targeting this assumption</Label>
         <p className="font-serif italic mt-2" style={{ fontSize: "13.5px", color: "#ede9e0", lineHeight: 1.5 }}>
@@ -397,19 +356,14 @@ function OutreachResults({ result }: { result: OutreachResult }) {
       <div className="flex gap-4">
         <div className="flex-1">
           <Label>Who to reach</Label>
-          <p style={{ fontSize: "13px", color: "#9a958c", lineHeight: 1.55, marginTop: "5px" }}>
-            {result.targetProfile}
-          </p>
+          <p style={{ fontSize: "13px", color: "#9a958c", lineHeight: 1.55, marginTop: "5px" }}>{result.targetProfile}</p>
         </div>
         <div className="flex-1">
           <Label>Why them</Label>
-          <p style={{ fontSize: "13px", color: "#9a958c", lineHeight: 1.55, marginTop: "5px" }}>
-            {result.why}
-          </p>
+          <p style={{ fontSize: "13px", color: "#9a958c", lineHeight: 1.55, marginTop: "5px" }}>{result.why}</p>
         </div>
       </div>
 
-      {/* Cold email */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <Label>Cold email</Label>
@@ -425,7 +379,6 @@ function OutreachResults({ result }: { result: OutreachResult }) {
         </div>
       </div>
 
-      {/* LinkedIn DM */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <Label>LinkedIn DM</Label>
@@ -438,56 +391,36 @@ function OutreachResults({ result }: { result: OutreachResult }) {
         </div>
       </div>
 
-      {/* Personalization tips */}
       <div style={{ background: "rgba(111,147,196,0.06)", border: "1px solid rgba(111,147,196,0.2)", borderRadius: "9px", padding: "12px 14px" }}>
         <Label>Before you send</Label>
-        <p style={{ fontSize: "12.5px", color: "#9a958c", lineHeight: 1.55, marginTop: "6px" }}>
-          {result.personalizationTips}
-        </p>
+        <p style={{ fontSize: "12.5px", color: "#9a958c", lineHeight: 1.55, marginTop: "6px" }}>{result.personalizationTips}</p>
       </div>
 
-      {/* HITL notice */}
       <p className="font-serif italic" style={{ fontSize: "11.5px", color: "#5a574f", lineHeight: 1.5 }}>
         You review and send every message. The AI never contacts anyone on your behalf.
       </p>
     </div>
   );
-}
+};
 
-// ── Summary results ────────────────────────────────────────────────────────────
-function SummaryResults({ result }: { result: SummaryResult }) {
+const SummaryResults = ({ result }: { result: SummaryResult }) => {
   const fullCopy = useCopy();
 
   const fullText = [
-    result.headline,
-    "",
-    "PROBLEM",
-    result.problem,
-    "",
-    "SOLUTION",
-    result.solution,
-    "",
-    "TARGET CUSTOMER",
-    result.targetCustomer,
-    "",
-    "KEY RISKS",
-    ...result.keyRisks.map((r) => `• ${r}`),
-    "",
+    result.headline, "",
+    "PROBLEM", result.problem, "",
+    "SOLUTION", result.solution, "",
+    "TARGET CUSTOMER", result.targetCustomer, "",
+    "KEY RISKS", ...result.keyRisks.map((r) => `• ${r}`), "",
     "VALIDATED SIGNALS",
-    result.validatedSignals.length > 0 ? result.validatedSignals.map((s) => `• ${s}`).join("\n") : "• None yet",
-    "",
-    "NEXT STEPS",
-    ...result.nextSteps.map((s, i) => `${i + 1}. ${s}`),
+    result.validatedSignals.length > 0 ? result.validatedSignals.map((s) => `• ${s}`).join("\n") : "• None yet", "",
+    "NEXT STEPS", ...result.nextSteps.map((s, i) => `${i + 1}. ${s}`),
   ].join("\n");
 
   return (
     <div className="flex flex-col gap-5 px-8 py-6">
-
-      {/* Copy button row */}
       <div className="flex items-center justify-between">
-        <p className="font-serif italic" style={{ fontSize: "13.5px", color: "#ede9e0" }}>
-          {result.headline}
-        </p>
+        <p className="font-serif italic" style={{ fontSize: "13.5px", color: "#ede9e0" }}>{result.headline}</p>
         <CopyButton copied={fullCopy.copied} onClick={() => fullCopy.copy(fullText)} label="Copy brief" />
       </div>
 
@@ -499,7 +432,6 @@ function SummaryResults({ result }: { result: SummaryResult }) {
 
       <Divider />
 
-      {/* Key risks */}
       <div>
         <Label>Key Risks</Label>
         <ul className="flex flex-col gap-2 mt-2">
@@ -512,7 +444,6 @@ function SummaryResults({ result }: { result: SummaryResult }) {
         </ul>
       </div>
 
-      {/* Validated signals */}
       <div>
         <Label>Validated Signals</Label>
         {result.validatedSignals.length > 0 ? (
@@ -533,16 +464,12 @@ function SummaryResults({ result }: { result: SummaryResult }) {
 
       <Divider />
 
-      {/* Next steps */}
       <div>
         <Label>Your Next 3 Steps</Label>
         <ol className="flex flex-col gap-3 mt-2">
           {result.nextSteps.map((step, i) => (
             <li key={i} className="flex items-start gap-3">
-              <span
-                className="font-mono shrink-0"
-                style={{ fontSize: "10px", color: "#c2692a", marginTop: "2px", letterSpacing: "0.06em" }}
-              >
+              <span className="font-mono shrink-0" style={{ fontSize: "10px", color: "#c2692a", marginTop: "2px", letterSpacing: "0.06em" }}>
                 {i + 1}.
               </span>
               <span style={{ fontSize: "13px", color: "#ede9e0", lineHeight: 1.55 }}>{step}</span>
@@ -551,75 +478,54 @@ function SummaryResults({ result }: { result: SummaryResult }) {
         </ol>
       </div>
 
-      {/* Honest framing */}
       <p className="font-serif italic" style={{ fontSize: "11.5px", color: "#5a574f", lineHeight: 1.5, borderTop: "1px solid #2e2c28", paddingTop: "14px" }}>
         This brief reflects only what you told the system. It is information for your decision-making — not an endorsement of the idea.
       </p>
     </div>
   );
-}
+};
 
-// ── Shared UI primitives ───────────────────────────────────────────────────────
-function PageShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="flex min-h-screen flex-col"
-      style={{ background: "var(--war-room-bg)" }}
-    >
-      {children}
-    </div>
-  );
-}
+const PageShell = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex min-h-screen flex-col" style={{ background: "var(--war-room-bg)" }}>
+    {children}
+  </div>
+);
 
-function AssumptionPill({ label, color, bg, border }: {
-  label: string; color: string; bg: string; border: string;
-}) {
-  return (
-    <span
-      className="font-mono uppercase"
-      style={{ fontSize: "8px", letterSpacing: "0.12em", color, background: bg, border: `1px solid ${border}`, borderRadius: "5px", padding: "3px 8px" }}
-    >
-      {label}
-    </span>
-  );
-}
+const AssumptionPill = ({ label, color, bg, border }: { label: string; color: string; bg: string; border: string }) => (
+  <span
+    className="font-mono uppercase"
+    style={{ fontSize: "8px", letterSpacing: "0.12em", color, background: bg, border: `1px solid ${border}`, borderRadius: "5px", padding: "3px 8px" }}
+  >
+    {label}
+  </span>
+);
 
-function Label({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="font-mono uppercase" style={{ fontSize: "8.5px", letterSpacing: "0.12em", color: "#5a574f" }}>
-      {children}
-    </p>
-  );
-}
+const Label = ({ children }: { children: React.ReactNode }) => (
+  <p className="font-mono uppercase" style={{ fontSize: "8.5px", letterSpacing: "0.12em", color: "#5a574f" }}>
+    {children}
+  </p>
+);
 
-function SummarySection({ label, body }: { label: string; body: string }) {
-  return (
-    <div>
-      <Label>{label}</Label>
-      <p style={{ fontSize: "13px", color: "#9a958c", lineHeight: 1.6, marginTop: "5px" }}>{body}</p>
-    </div>
-  );
-}
+const SummarySection = ({ label, body }: { label: string; body: string }) => (
+  <div>
+    <Label>{label}</Label>
+    <p style={{ fontSize: "13px", color: "#9a958c", lineHeight: 1.6, marginTop: "5px" }}>{body}</p>
+  </div>
+);
 
-function Divider() {
-  return <div style={{ height: "1px", background: "#2e2c28", margin: "2px 0" }} />;
-}
+const Divider = () => <div style={{ height: "1px", background: "#2e2c28", margin: "2px 0" }} />;
 
-function CopyButton({ copied, onClick, label = "Copy" }: {
-  copied: boolean; onClick: () => void; label?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="inline-flex items-center gap-1.5 font-mono uppercase transition-colors"
-      style={{
-        fontSize: "8px", letterSpacing: "0.12em",
-        color: copied ? "#6fa37e" : "#5a574f",
-        background: "none", border: "none", cursor: "pointer", padding: 0,
-      }}
-    >
-      {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-      {copied ? "Copied" : label}
-    </button>
-  );
-}
+const CopyButton = ({ copied, onClick, label = "Copy" }: { copied: boolean; onClick: () => void; label?: string }) => (
+  <button
+    onClick={onClick}
+    className="inline-flex items-center gap-1.5 font-mono uppercase transition-colors"
+    style={{
+      fontSize: "8px", letterSpacing: "0.12em",
+      color: copied ? "#6fa37e" : "#5a574f",
+      background: "none", border: "none", cursor: "pointer", padding: 0,
+    }}
+  >
+    {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+    {copied ? "Copied" : label}
+  </button>
+);

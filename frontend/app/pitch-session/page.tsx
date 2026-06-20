@@ -4,6 +4,5 @@ export const metadata = {
   title: 'Pitch Session — USAII Pitch Coach',
 };
 
-export default function PitchSessionPage() {
-  return <SessionUi />;
-}
+const PitchSessionPage = () => <SessionUi />;
+export default PitchSessionPage;

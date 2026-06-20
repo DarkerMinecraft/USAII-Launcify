@@ -15,7 +15,7 @@ interface RawNode {
 const VALID_STATUSES = new Set<AssumptionStatus>(["VALIDATED", "UNVALIDATED", "NEEDS_INFO"]);
 const VALID_AGENTS = new Set<AgentRole>(["SKEPTIC", "STRATEGIST", "OPERATOR"]);
 
-export async function POST(req: NextRequest) {
+export const POST = async (req: NextRequest) => {
   let body: {
     ideaSummary?: string;
     questionnaireResponses?: QA[];

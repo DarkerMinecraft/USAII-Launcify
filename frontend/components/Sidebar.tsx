@@ -33,7 +33,7 @@ const pillars = [
   },
 ];
 
-export function Sidebar() {
+export const Sidebar = () => {
   const pathname = usePathname();
   const { user, isLoading } = useUser();
 
@@ -51,7 +51,6 @@ export function Sidebar() {
         style={{ borderBottom: "1px solid #1f1e1b" }}
       >
         <Link href="/" className="flex items-center gap-3 group">
-          {/* White tile with dark serif "F" */}
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-serif font-bold text-base"
             style={{
@@ -85,7 +84,6 @@ export function Sidebar() {
 
       {/* Pillar navigation */}
       <nav className="flex flex-col gap-0.5 p-3 flex-1">
-        {/* Mono section eyebrow */}
         <p
           className="font-mono uppercase px-3 pb-2 pt-1"
           style={{
@@ -122,7 +120,6 @@ export function Sidebar() {
               aria-disabled={locked}
               tabIndex={locked ? -1 : undefined}
             >
-              {/* Status dot — glowing when active, ring when inactive */}
               {isActive ? (
                 <div
                   className="shrink-0 rounded-full"
@@ -227,7 +224,7 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Idea summary card — empty state in Phase 3 */}
+      {/* Idea summary card */}
       <div className="p-3" style={{ borderTop: "1px solid #1f1e1b" }}>
         <div
           className="rounded-[11px] p-3"
@@ -256,4 +253,4 @@ export function Sidebar() {
       </div>
     </aside>
   );
-}
+};

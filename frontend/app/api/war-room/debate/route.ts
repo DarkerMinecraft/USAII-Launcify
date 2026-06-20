@@ -17,7 +17,7 @@ const AGENT_SYSTEMS: Record<AgentRole, string> = {
   OPERATOR: OPERATOR_SYSTEM,
 };
 
-export async function POST(req: NextRequest) {
+export const POST = async (req: NextRequest) => {
   let body: {
     agent?: AgentRole;
     round?: number;

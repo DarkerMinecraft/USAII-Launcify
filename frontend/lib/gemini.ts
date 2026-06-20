@@ -24,11 +24,11 @@ interface CallOptions {
   temperature?: number;
 }
 
-export async function callGemini(
+export const callGemini = async (
   systemPrompt: string,
   userPrompt: string,
   options: CallOptions = {}
-): Promise<string> {
+): Promise<string> => {
   if (!process.env.GEMINI_API_KEY) {
     throw new GeminiError("GEMINI_API_KEY is not set");
   }
@@ -64,7 +64,7 @@ export async function callGemini(
 
 /** Strips markdown code fences a model may wrap JSON in, then parses. Throws a
  *  clear GeminiParseError (with the raw text) instead of a bare SyntaxError. */
-export function parseJSON<T>(text: string): T {
+export const parseJSON = <T>(text: string): T => {
   const cleaned = text
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```\s*$/i, "")

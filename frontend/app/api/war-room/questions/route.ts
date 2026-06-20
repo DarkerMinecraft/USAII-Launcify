@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { callLLM, parseJSON, GeminiParseError, LLMError } from "@/lib/llm";
 import { QUESTION_GEN_PROMPT } from "@/prompts/agents";
 
-export async function POST(req: NextRequest) {
+export const POST = async (req: NextRequest) => {
   let body: unknown;
   try {
     body = await req.json();

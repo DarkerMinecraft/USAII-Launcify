@@ -8,12 +8,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { GeminiLiveClient, type SessionState } from '@/lib/gemini-live-client';
 
-// Module-level reference persists across React remounts within the same page
-// navigation. Prevents two competing WebSocket connections when Turbopack
-// HMR re-executes the component before the previous cleanup fires.
 let _activeClient: GeminiLiveClient | null = null;
 
-// ─── Camera size presets ───────────────────────────────────────────────────
 const CAM_SIZES = {
   sm: { w: 160, h: 108 },
   md: { w: 256, h: 171 },
@@ -22,7 +18,6 @@ const CAM_SIZES = {
 type CamSize = keyof typeof CAM_SIZES;
 const CAM_SIZE_ORDER: CamSize[] = ['sm', 'md', 'lg'];
 
-// ─── Feedback log entry ────────────────────────────────────────────────────
 interface FeedbackEntry {
   id: string;
   text: string;
@@ -30,13 +25,10 @@ interface FeedbackEntry {
   round: number;
 }
 
-function formatTimestamp(ms: number) {
-  return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
+const formatTimestamp = (ms: number) =>
+  new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-// ──────────────────────────────────────────────────────────────────────────
-export function SessionUi() {
-  // Session state
+export const SessionUi = () => {
   const [sessionState, setSessionState] = useState<SessionState>('connecting');
   const [isMuted, setIsMuted]           = useState(false);
   const [isCameraOn, setIsCameraOn]     = useState(false);
@@ -44,28 +36,23 @@ export function SessionUi() {
   const [needsStart, setNeedsStart]     = useState(true);
   const [error, setError]               = useState<string | null>(null);
 
-  // Media streams
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
 
-  // Camera thumbnail: drag + resize
   const [camSize, setCamSize]           = useState<CamSize>('sm');
   const [camPos, setCamPos]             = useState<{ x: number; y: number } | null>(null);
   const [isDraggingCam, setIsDraggingCam] = useState(false);
   const camDragState = useRef<{ mouseX: number; mouseY: number; posX: number; posY: number } | null>(null);
 
-  // Feedback panel
   const [feedbackLog, setFeedbackLog]   = useState<FeedbackEntry[]>([]);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const feedbackRoundRef = useRef(0);
   const feedbackPanelRef = useRef<HTMLDivElement>(null);
 
-  // DOM refs
   const liveClientRef   = useRef<GeminiLiveClient | null>(null);
   const cameraVideoRef  = useRef<HTMLVideoElement>(null);
   const screenVideoRef  = useRef<HTMLVideoElement>(null);
 
-  // ── Attach streams to video elements ────────────────────────────────────
   useEffect(() => {
     if (cameraStream && cameraVideoRef.current) {
       cameraVideoRef.current.srcObject = cameraStream;
@@ -78,7 +65,6 @@ export function SessionUi() {
     }
   }, [screenStream]);
 
-  // Sync when user stops screen share from the browser's native UI
   useEffect(() => {
     if (!screenStream) return;
     const track = screenStream.getVideoTracks()[0];
@@ -88,17 +74,12 @@ export function SessionUi() {
     return () => track.removeEventListener('ended', handleEnded);
   }, [screenStream]);
 
-  // ── Set camera to default bottom-right position on first show ───────────
-  function initCamPos(size: CamSize = camSize) {
-    if (camPos) return; // already placed by user or previous turn-on
+  const initCamPos = (size: CamSize = camSize) => {
+    if (camPos) return;
     const { w, h } = CAM_SIZES[size];
-    setCamPos({
-      x: window.innerWidth - w - 16,
-      y: window.innerHeight - h - 80, // above footer
-    });
-  }
+    setCamPos({ x: window.innerWidth - w - 16, y: window.innerHeight - h - 80 });
+  };
 
-  // ── Gemini session init ─────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
@@ -107,7 +88,7 @@ export function SessionUi() {
       _activeClient = null;
     }
 
-    async function init() {
+    const init = async () => {
       try {
         const res = await fetch('/api/gemini-token', { method: 'POST' });
         if (!res.ok) throw new Error('Failed to get API token');
@@ -146,9 +127,9 @@ export function SessionUi() {
         console.error('Init error:', err);
         if (!cancelled) setError('Failed to connect. Please check your connection.');
       }
-    }
+    };
 
-    init();
+    void init();
 
     return () => {
       cancelled = true;
@@ -166,8 +147,7 @@ export function SessionUi() {
     return () => window.removeEventListener('beforeunload', handleUnload);
   }, []);
 
-  // ── Camera drag ─────────────────────────────────────────────────────────
-  function handleCamMouseDown(e: React.MouseEvent) {
+  const handleCamMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0 || !camPos) return;
     e.preventDefault();
     camDragState.current = { mouseX: e.clientX, mouseY: e.clientY, posX: camPos.x, posY: camPos.y };
@@ -188,14 +168,13 @@ export function SessionUi() {
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-  }
+  };
 
-  function cycleCamSize(e: React.MouseEvent) {
-    e.stopPropagation(); // don't start a drag
+  const cycleCamSize = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setCamSize(prev => {
       const idx = CAM_SIZE_ORDER.indexOf(prev);
       const next = CAM_SIZE_ORDER[(idx + 1) % CAM_SIZE_ORDER.length]!;
-      // Adjust position so thumbnail doesn't fly off-screen when growing
       setCamPos(pos => {
         if (!pos) return pos;
         const { w, h } = CAM_SIZES[next];
@@ -206,10 +185,9 @@ export function SessionUi() {
       });
       return next;
     });
-  }
+  };
 
-  // ── Session handlers ────────────────────────────────────────────────────
-  async function handleStart() {
+  const handleStart = async () => {
     const client = liveClientRef.current;
     if (!client) return;
     try {
@@ -225,17 +203,17 @@ export function SessionUi() {
       console.error('Failed to start session:', err);
       setError('Could not access microphone. Please allow microphone permission and try again.');
     }
-  }
+  };
 
-  function handleToggleMute() {
+  const handleToggleMute = () => {
     const client = liveClientRef.current;
     if (!client) return;
     const next = !isMuted;
     client.setMuted(next);
     setIsMuted(next);
-  }
+  };
 
-  async function handleToggleCamera() {
+  const handleToggleCamera = async () => {
     const client = liveClientRef.current;
     if (!client) return;
     if (isCameraOn) {
@@ -251,9 +229,9 @@ export function SessionUi() {
         initCamPos();
       } catch (err) { console.error('Camera error:', err); }
     }
-  }
+  };
 
-  async function handleToggleScreenShare() {
+  const handleToggleScreenShare = async () => {
     const client = liveClientRef.current;
     if (!client) return;
     if (isScreenShared) {
@@ -272,14 +250,13 @@ export function SessionUi() {
         setScreenStream(null);
       }
     }
-  }
+  };
 
-  function handleEnd() {
+  const handleEnd = () => {
     liveClientRef.current?.disconnect();
     window.location.href = '/';
-  }
+  };
 
-  // ── Status config ───────────────────────────────────────────────────────
   const statusConfig: Record<SessionState, { color: string; label: string }> = {
     connecting:   { color: 'bg-yellow-400', label: 'Connecting…'   },
     connected:    { color: 'bg-green-400',  label: 'Connected'      },
@@ -290,16 +267,11 @@ export function SessionUi() {
   };
   const { color: statusColor, label: statusLabel } = statusConfig[sessionState];
 
-  // ── Error screen ────────────────────────────────────────────────────────
   if (error) {
     return (
       <div className="h-dvh flex flex-col items-center justify-center bg-zinc-950 text-white gap-4 px-6">
         <p className="text-red-400 text-center max-w-sm">{error}</p>
-        <Button
-          onClick={() => window.location.reload()}
-          variant="outline"
-          className="bg-zinc-800 border-white/30 text-white hover:bg-zinc-700"
-        >
+        <Button onClick={() => window.location.reload()} variant="outline" className="bg-zinc-800 border-white/30 text-white hover:bg-zinc-700">
           Reload
         </Button>
       </div>
@@ -308,11 +280,9 @@ export function SessionUi() {
 
   const { w: camW, h: camH } = CAM_SIZES[camSize];
 
-  // ── Render ──────────────────────────────────────────────────────────────
   return (
     <div className="h-dvh flex flex-col bg-zinc-950 text-white overflow-hidden">
 
-      {/* ── Header ── */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
         <span className="font-semibold text-base tracking-tight">USAII Pitch Coach</span>
         <div className="flex items-center gap-2">
@@ -324,10 +294,7 @@ export function SessionUi() {
         </div>
       </header>
 
-      {/* ── Main area ── */}
       <main className="flex-1 relative flex flex-col items-center justify-center p-6 overflow-hidden">
-
-        {/* Subtle status indicator — only visible when not screen sharing */}
         {!isScreenShared && !needsStart && (
           <div className="flex items-center gap-2 text-white/30">
             {sessionState === 'speaking' ? (
@@ -344,7 +311,6 @@ export function SessionUi() {
           </div>
         )}
 
-        {/* Start overlay */}
         {needsStart && (sessionState === 'connected' || sessionState === 'listening') && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950/80 backdrop-blur-sm gap-6">
             <div className="text-center space-y-2">
@@ -353,24 +319,15 @@ export function SessionUi() {
                 Your mic and camera will turn on. The AI coach will listen, watch your delivery, and give feedback.
               </p>
             </div>
-            <Button
-              onClick={handleStart}
-              size="lg"
-              className="bg-white text-zinc-950 hover:bg-white/90 font-semibold px-8 py-3 h-auto rounded-full"
-            >
+            <Button onClick={handleStart} size="lg" className="bg-white text-zinc-950 hover:bg-white/90 font-semibold px-8 py-3 h-auto rounded-full">
               Start Your Pitch
             </Button>
           </div>
         )}
 
-        {/* Screen share preview */}
         {isScreenShared && (
           <div className="absolute inset-4 rounded-xl overflow-hidden border border-white/20 shadow-2xl bg-zinc-900">
-            <video
-              ref={screenVideoRef}
-              autoPlay playsInline muted
-              className="w-full h-full object-contain bg-zinc-900"
-            />
+            <video ref={screenVideoRef} autoPlay playsInline muted className="w-full h-full object-contain bg-zinc-900" />
             <div className="absolute top-2 left-3 text-[10px] text-white/50 font-medium bg-zinc-950/70 px-2 py-0.5 rounded-full">
               Your screen
             </div>
@@ -378,52 +335,28 @@ export function SessionUi() {
         )}
       </main>
 
-      {/* ── Control bar ── */}
       <footer className="flex items-center justify-center gap-3 px-6 py-4 border-t border-white/10 shrink-0">
-        {/* Mute */}
-        <Button
-          onClick={handleToggleMute} variant="outline" size="icon"
-          disabled={needsStart}
-          className={`rounded-full w-12 h-12 ${isMuted
-            ? 'bg-red-500/30 border-red-400/70 text-red-300 hover:bg-red-500/40'
-            : 'bg-zinc-800 border-white/30 text-white hover:bg-zinc-700 hover:border-white/50'}`}
-          title={isMuted ? 'Unmute' : 'Mute'}
-        >
+        <Button onClick={handleToggleMute} variant="outline" size="icon" disabled={needsStart}
+          className={`rounded-full w-12 h-12 ${isMuted ? 'bg-red-500/30 border-red-400/70 text-red-300 hover:bg-red-500/40' : 'bg-zinc-800 border-white/30 text-white hover:bg-zinc-700 hover:border-white/50'}`}
+          title={isMuted ? 'Unmute' : 'Mute'}>
           {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
         </Button>
 
-        {/* Camera */}
-        <Button
-          onClick={handleToggleCamera} variant="outline" size="icon"
-          disabled={needsStart}
-          className={`rounded-full w-12 h-12 ${isCameraOn
-            ? 'bg-zinc-800 border-white/30 text-white hover:bg-zinc-700 hover:border-white/50'
-            : 'bg-zinc-800 border-white/30 text-white/50 hover:bg-zinc-700 hover:text-white hover:border-white/50'}`}
-          title={isCameraOn ? 'Turn off camera' : 'Turn on camera'}
-        >
+        <Button onClick={handleToggleCamera} variant="outline" size="icon" disabled={needsStart}
+          className={`rounded-full w-12 h-12 ${isCameraOn ? 'bg-zinc-800 border-white/30 text-white hover:bg-zinc-700 hover:border-white/50' : 'bg-zinc-800 border-white/30 text-white/50 hover:bg-zinc-700 hover:text-white hover:border-white/50'}`}
+          title={isCameraOn ? 'Turn off camera' : 'Turn on camera'}>
           {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
         </Button>
 
-        {/* Share slides */}
-        <Button
-          onClick={handleToggleScreenShare} variant="outline" size="icon"
-          disabled={needsStart}
-          className={`rounded-full w-12 h-12 ${isScreenShared
-            ? 'bg-blue-500/30 border-blue-400/70 text-blue-300 hover:bg-blue-500/40'
-            : 'bg-zinc-800 border-white/30 text-white hover:bg-zinc-700 hover:border-white/50'}`}
-          title={isScreenShared ? 'Stop sharing slides' : 'Share slides'}
-        >
+        <Button onClick={handleToggleScreenShare} variant="outline" size="icon" disabled={needsStart}
+          className={`rounded-full w-12 h-12 ${isScreenShared ? 'bg-blue-500/30 border-blue-400/70 text-blue-300 hover:bg-blue-500/40' : 'bg-zinc-800 border-white/30 text-white hover:bg-zinc-700 hover:border-white/50'}`}
+          title={isScreenShared ? 'Stop sharing slides' : 'Share slides'}>
           {isScreenShared ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
         </Button>
 
-        {/* Feedback notes toggle */}
-        <Button
-          onClick={() => setIsFeedbackOpen(v => !v)} variant="outline" size="icon"
-          className={`rounded-full w-12 h-12 relative ${isFeedbackOpen
-            ? 'bg-violet-500/30 border-violet-400/70 text-violet-300 hover:bg-violet-500/40'
-            : 'bg-zinc-800 border-white/30 text-white hover:bg-zinc-700 hover:border-white/50'}`}
-          title="Coaching notes"
-        >
+        <Button onClick={() => setIsFeedbackOpen(v => !v)} variant="outline" size="icon"
+          className={`rounded-full w-12 h-12 relative ${isFeedbackOpen ? 'bg-violet-500/30 border-violet-400/70 text-violet-300 hover:bg-violet-500/40' : 'bg-zinc-800 border-white/30 text-white hover:bg-zinc-700 hover:border-white/50'}`}
+          title="Coaching notes">
           <MessageSquare className="w-5 h-5" />
           {feedbackLog.length > 0 && (
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-violet-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
@@ -432,45 +365,23 @@ export function SessionUi() {
           )}
         </Button>
 
-        {/* Divider */}
         <div className="w-px h-8 bg-white/20" />
 
-        {/* End session */}
-        <Button
-          onClick={handleEnd} variant="outline" size="icon"
+        <Button onClick={handleEnd} variant="outline" size="icon"
           className="rounded-full w-12 h-12 bg-red-500/30 border-red-400/70 text-red-300 hover:bg-red-500/40 hover:border-red-400"
-          title="End session"
-        >
+          title="End session">
           <PhoneOff className="w-5 h-5" />
         </Button>
       </footer>
 
-      {/* ── Draggable camera thumbnail (fixed, outside main flow) ── */}
       {isCameraOn && camPos && (
         <div
           onMouseDown={handleCamMouseDown}
-          style={{
-            position: 'fixed',
-            left: camPos.x,
-            top: camPos.y,
-            width: camW,
-            height: camH,
-            cursor: isDraggingCam ? 'grabbing' : 'grab',
-            userSelect: 'none',
-            zIndex: 50,
-          }}
+          style={{ position: 'fixed', left: camPos.x, top: camPos.y, width: camW, height: camH, cursor: isDraggingCam ? 'grabbing' : 'grab', userSelect: 'none', zIndex: 50 }}
           className="rounded-xl overflow-hidden shadow-2xl border border-white/20 bg-zinc-900 group"
         >
-          <video
-            ref={cameraVideoRef}
-            autoPlay playsInline muted
-            className="w-full h-full object-cover"
-            style={{ transform: 'scaleX(-1)' }}
-          />
-
-          {/* Overlay controls — visible on hover */}
+          <video ref={cameraVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors">
-            {/* Resize button */}
             <button
               onMouseDown={e => e.stopPropagation()}
               onClick={cycleCamSize}
@@ -479,8 +390,6 @@ export function SessionUi() {
             >
               <Maximize2 className="w-3 h-3" />
             </button>
-
-            {/* "You" label */}
             <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] text-white/60 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
               drag to move · click <Maximize2 className="w-2.5 h-2.5 inline" /> to resize
             </div>
@@ -488,13 +397,8 @@ export function SessionUi() {
         </div>
       )}
 
-      {/* ── Feedback / coaching notes panel ── */}
       {isFeedbackOpen && (
-        <div
-          ref={feedbackPanelRef}
-          className="fixed right-0 top-0 h-full w-80 bg-zinc-900 border-l border-white/10 flex flex-col z-40 shadow-2xl"
-        >
-          {/* Panel header */}
+        <div ref={feedbackPanelRef} className="fixed right-0 top-0 h-full w-80 bg-zinc-900 border-l border-white/10 flex flex-col z-40 shadow-2xl">
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/10 shrink-0">
             <div className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-violet-400" />
@@ -503,36 +407,23 @@ export function SessionUi() {
                 <span className="text-xs text-white/40">{feedbackLog.length} note{feedbackLog.length !== 1 ? 's' : ''}</span>
               )}
             </div>
-            <button
-              onClick={() => setIsFeedbackOpen(false)}
-              className="w-6 h-6 flex items-center justify-center rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-colors"
-            >
+            <button onClick={() => setIsFeedbackOpen(false)} className="w-6 h-6 flex items-center justify-center rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Entries */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {feedbackLog.length === 0 ? (
               <div className="text-center py-8 space-y-2">
                 <MessageSquare className="w-8 h-8 text-white/20 mx-auto" />
-                <p className="text-white/40 text-sm">
-                  Start your pitch — coaching feedback will appear here after each round.
-                </p>
+                <p className="text-white/40 text-sm">Start your pitch — coaching feedback will appear here after each round.</p>
               </div>
             ) : (
               feedbackLog.map(entry => (
-                <div
-                  key={entry.id}
-                  className="rounded-xl bg-white/5 border border-white/8 p-3.5 space-y-1.5"
-                >
+                <div key={entry.id} className="rounded-xl bg-white/5 border border-white/8 p-3.5 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-violet-400 uppercase tracking-wider">
-                      Note {entry.round}
-                    </span>
-                    <span className="text-[10px] text-white/30">
-                      {formatTimestamp(entry.timestamp)}
-                    </span>
+                    <span className="text-[11px] font-semibold text-violet-400 uppercase tracking-wider">Note {entry.round}</span>
+                    <span className="text-[10px] text-white/30">{formatTimestamp(entry.timestamp)}</span>
                   </div>
                   <p className="text-sm text-white/90 leading-relaxed">{entry.text}</p>
                 </div>
@@ -540,7 +431,6 @@ export function SessionUi() {
             )}
           </div>
 
-          {/* Clear button */}
           {feedbackLog.length > 0 && (
             <div className="px-4 py-3 border-t border-white/10 shrink-0">
               <button
@@ -555,4 +445,4 @@ export function SessionUi() {
       )}
     </div>
   );
-}
+};

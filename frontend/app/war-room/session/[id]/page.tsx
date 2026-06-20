@@ -1,11 +1,11 @@
 import { auth0 } from "@/lib/auth0";
-import { WarRoomArena } from "@/components/war-room/WarRoomArena";
+import { WarRoomArena } from "@/components/war-room/war-room-arena";
 
-export default async function WarRoomSessionPage({
+const WarRoomSessionPage = async ({
   params,
 }: {
   params: Promise<{ id: string }>;
-}) {
+}) => {
   const { id } = await params;
   const session = await auth0.getSession();
 
@@ -37,4 +37,5 @@ export default async function WarRoomSessionPage({
   }
 
   return <WarRoomArena id={id} />;
-}
+};
+export default WarRoomSessionPage;

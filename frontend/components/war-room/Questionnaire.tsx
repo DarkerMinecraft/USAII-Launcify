@@ -5,23 +5,10 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Loader2, Sparkles } from "lucide-react";
 import { DEFAULT_QUESTIONS, hasAnsweredQuestionnaire } from "@/lib/questionnaire";
+import { Textarea } from "@/components/ui/textarea";
 import type { QA } from "@/lib/types";
 
 type Stage = "intake" | "questionnaire";
-
-// Shared input chrome per the design system (surface-3 well, hairline border).
-const inputStyle: React.CSSProperties = {
-  background: "#1a1916",
-  border: "1px solid #2e2c28",
-  borderRadius: "9px",
-  padding: "12px 15px",
-  color: "#ede9e0",
-  outline: "none",
-  fontSize: "14px",
-  lineHeight: 1.5,
-  width: "100%",
-  resize: "vertical",
-};
 
 const eyebrow: React.CSSProperties = {
   fontSize: "9.5px",
@@ -30,7 +17,10 @@ const eyebrow: React.CSSProperties = {
   textTransform: "uppercase",
 };
 
-export function Questionnaire() {
+const textareaClass =
+  "bg-[#1a1916] border border-[#2e2c28] rounded-[9px] px-[15px] py-3 text-[#ede9e0] text-sm leading-relaxed placeholder:text-[#5a574f] resize-y focus-visible:border-[#5a574f] focus-visible:ring-1 focus-visible:ring-[#5a574f]/20 min-h-0";
+
+export const Questionnaire = () => {
   const router = useRouter();
 
   const [stage, setStage] = useState<Stage>("intake");
@@ -41,7 +31,7 @@ export function Questionnaire() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function generateQuestions() {
+  const generateQuestions = async () => {
     if (!idea.trim()) return;
     setError(null);
     setLoadingQuestions(true);
@@ -65,9 +55,9 @@ export function Questionnaire() {
     } finally {
       setLoadingQuestions(false);
     }
-  }
+  };
 
-  async function submit() {
+  const submit = async () => {
     const qa: QA[] = questions.map((question, i) => ({
       question,
       answer: answers[i] ?? "",
@@ -95,7 +85,7 @@ export function Questionnaire() {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="mx-auto w-full max-w-2xl px-8 py-16">
@@ -129,15 +119,15 @@ export function Questionnaire() {
             <label style={eyebrow} className="font-mono block mb-2">
               Your idea
             </label>
-            <textarea
+            <Textarea
               autoFocus
               rows={3}
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
               placeholder="e.g. An AI comms layer that drafts freight brokers' carrier emails so they can cover more loads per rep."
-              style={inputStyle}
+              className={textareaClass}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) generateQuestions();
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void generateQuestions();
               }}
             />
 
@@ -208,7 +198,7 @@ export function Questionnaire() {
                     >
                       {q}
                     </label>
-                    <textarea
+                    <Textarea
                       rows={2}
                       value={answers[i] ?? ""}
                       onChange={(e) => {
@@ -217,7 +207,7 @@ export function Questionnaire() {
                         setAnswers(next);
                       }}
                       placeholder="Your answer…"
-                      style={inputStyle}
+                      className={textareaClass}
                     />
                   </div>
                 );
@@ -252,9 +242,9 @@ export function Questionnaire() {
       </AnimatePresence>
     </div>
   );
-}
+};
 
-function PrimaryButton({
+const PrimaryButton = ({
   disabled,
   onClick,
   loading,
@@ -268,44 +258,40 @@ function PrimaryButton({
   loadingLabel: string;
   icon: React.ReactNode;
   label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="inline-flex items-center gap-2.5 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      style={{
-        background: "#ede9e0",
-        color: "#131210",
-        borderRadius: "9px",
-        padding: "12px 22px",
-        fontSize: "14.5px",
-        border: "none",
-      }}
-    >
-      {loading ? (
-        <>
-          <Loader2 className="w-4 h-4 animate-spin" />
-          {loadingLabel}
-        </>
-      ) : (
-        <>
-          {icon}
-          {label}
-        </>
-      )}
-    </button>
-  );
-}
+}) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className="inline-flex items-center gap-2.5 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+    style={{
+      background: "#ede9e0",
+      color: "#131210",
+      borderRadius: "9px",
+      padding: "12px 22px",
+      fontSize: "14.5px",
+      border: "none",
+    }}
+  >
+    {loading ? (
+      <>
+        <Loader2 className="w-4 h-4 animate-spin" />
+        {loadingLabel}
+      </>
+    ) : (
+      <>
+        {icon}
+        {label}
+      </>
+    )}
+  </button>
+);
 
-function ErrorNote({ message }: { message: string }) {
-  return (
-    <p
-      className="mt-4"
-      style={{ fontSize: "13px", color: "#c2692a", lineHeight: 1.5 }}
-      role="alert"
-    >
-      {message}
-    </p>
-  );
-}
+const ErrorNote = ({ message }: { message: string }) => (
+  <p
+    className="mt-4"
+    style={{ fontSize: "13px", color: "#c2692a", lineHeight: 1.5 }}
+    role="alert"
+  >
+    {message}
+  </p>
+);

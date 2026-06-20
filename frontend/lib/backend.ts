@@ -17,10 +17,10 @@ export class BackendError extends Error {
  * Call from a Route Handler (cookies are writable there, so a refreshed token
  * is persisted) — not from a Server Component.
  */
-export async function forwardToBackend(
+export const forwardToBackend = async (
   path: string,
   init?: RequestInit
-): Promise<Response> {
+): Promise<Response> => {
   if (!BACKEND_URL) {
     throw new BackendError("NEXT_PUBLIC_BACKEND_URL is not configured", 500);
   }
@@ -48,7 +48,7 @@ export async function forwardToBackend(
  * this first — making the flow resilient regardless of login-callback timing.
  * The sync endpoint needs an `email` claim on the access token (Auth0 Action).
  */
-export async function ensureUserSynced(): Promise<void> {
+export const ensureUserSynced = async (): Promise<void> => {
   const res = await forwardToBackend("/v1/auth/sync", { method: "GET" });
   if (!res.ok) {
     const detail = await res.text().catch(() => "");

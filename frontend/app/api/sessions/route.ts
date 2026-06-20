@@ -6,10 +6,27 @@ import {
   BackendError,
 } from "@/lib/backend";
 
-// POST /api/sessions — BFF proxy to Express POST /v1/sessions.
-// Attaches the founder's Auth0 access token server-side and ensures the local
-// User row exists (sync) before creating the session.
-export async function POST(req: NextRequest) {
+export const GET = async () => {
+  try {
+    await ensureUserSynced();
+    const res = await forwardToBackend("/v1/sessions");
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      return NextResponse.json({ error: data?.error ?? "Could not list sessions" }, { status: res.status });
+    }
+    return NextResponse.json(data);
+  } catch (err) {
+    if (err instanceof BackendAuthError) {
+      return NextResponse.json({ error: "You must sign in first" }, { status: 401 });
+    }
+    if (err instanceof BackendError) {
+      return NextResponse.json({ error: err.message }, { status: 502 });
+    }
+    return NextResponse.json({ error: "Could not reach the backend" }, { status: 502 });
+  }
+};
+
+export const POST = async (req: NextRequest) => {
   let body: unknown;
   try {
     body = await req.json();
@@ -56,4 +73,4 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: "Could not reach the backend" }, { status: 502 });
   }
-}
+};

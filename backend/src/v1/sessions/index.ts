@@ -31,16 +31,37 @@ router.post("/", async (req, res) => {
       .json({ error: "questionnaireResponses must be an array" });
   }
 
-  const session = await prisma.warRoomSession.create({
-    data: {
-      userId: user.id,
-      ideaSummary: ideaSummary.trim(),
-      questionnaireResponses,
-    },
-    select: { id: true, ideaSummary: true, status: true, createdAt: true },
-  });
+  try {
+    const session = await prisma.warRoomSession.create({
+      data: {
+        userId: user.id,
+        ideaSummary: ideaSummary.trim(),
+        questionnaireResponses,
+      },
+      select: { id: true, ideaSummary: true, status: true, createdAt: true },
+    });
+    return res.status(201).json(session);
+  } catch (err) {
+    console.error("[sessions POST]", err instanceof Error ? err.message : err);
+    return res.status(500).json({ error: "internal_server_error" });
+  }
+});
 
-  return res.status(201).json(session);
+// GET /v1/sessions
+router.get("/", async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const sessions = await prisma.warRoomSession.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, ideaSummary: true, status: true, createdAt: true, updatedAt: true },
+    });
+    return res.json(sessions);
+  } catch (err) {
+    console.error("[sessions LIST]", err instanceof Error ? err.message : err);
+    return res.status(500).json({ error: "internal_server_error" });
+  }
 });
 
 // GET /v1/sessions/:id
@@ -48,17 +69,21 @@ router.get("/:id", async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
 
-  const session = await prisma.warRoomSession.findFirst({
-    where: { id: req.params.id, userId: user.id },
-    include: {
-      transcript: { orderBy: { createdAt: "asc" } },
-      assumptions: { orderBy: { createdAt: "asc" } },
-    },
-  });
+  try {
+    const session = await prisma.warRoomSession.findFirst({
+      where: { id: req.params.id, userId: user.id },
+      include: {
+        transcript: { orderBy: { createdAt: "asc" } },
+        assumptions: { orderBy: { createdAt: "asc" } },
+      },
+    });
 
-  if (!session) return res.status(404).json({ error: "Session not found" });
-
-  return res.json(session);
+    if (!session) return res.status(404).json({ error: "Session not found" });
+    return res.json(session);
+  } catch (err) {
+    console.error("[sessions GET]", err instanceof Error ? err.message : err);
+    return res.status(500).json({ error: "internal_server_error" });
+  }
 });
 
 // PATCH /v1/sessions/:id
@@ -133,11 +158,18 @@ router.patch("/:id", async (req, res) => {
     }
   }
 
-  const session = await prisma.warRoomSession.findFirst({
-    where: { id, userId: user.id },
-  });
+  let session;
+  try {
+    session = await prisma.warRoomSession.findFirst({
+      where: { id, userId: user.id },
+    });
+  } catch (err) {
+    console.error("[sessions PATCH lookup]", err instanceof Error ? err.message : err);
+    return res.status(500).json({ error: "internal_server_error" });
+  }
   if (!session) return res.status(404).json({ error: "Session not found" });
 
+  try {
   await prisma.$transaction(async (tx) => {
     await tx.warRoomSession.update({
       where: { id },
@@ -195,6 +227,10 @@ router.patch("/:id", async (req, res) => {
   });
 
   return res.json(updated);
+  } catch (err) {
+    console.error("[sessions PATCH]", err instanceof Error ? err.message : err);
+    return res.status(500).json({ error: "internal_server_error" });
+  }
 });
 
 export default router;

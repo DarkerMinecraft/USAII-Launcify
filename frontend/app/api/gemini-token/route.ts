@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export async function POST(): Promise<NextResponse> {
+export const POST = async (): Promise<NextResponse> => {
   const apiKey = process.env.GOOGLE_GENAI_API_KEY;
 
   if (!apiKey) {

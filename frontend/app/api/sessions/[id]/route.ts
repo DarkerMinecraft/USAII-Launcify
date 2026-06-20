@@ -9,7 +9,7 @@ import {
 type Ctx = { params: Promise<{ id: string }> };
 
 // GET /api/sessions/[id] — BFF proxy to Express GET /v1/sessions/:id
-export async function GET(_req: NextRequest, ctx: Ctx) {
+export const GET = async (_req: NextRequest, ctx: Ctx) => {
   const { id } = await ctx.params;
 
   try {
@@ -35,7 +35,7 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
 }
 
 // PATCH /api/sessions/[id] — BFF proxy to Express PATCH /v1/sessions/:id
-export async function PATCH(req: NextRequest, ctx: Ctx) {
+export const PATCH = async (req: NextRequest, ctx: Ctx) => {
   const { id } = await ctx.params;
 
   let body: unknown;
