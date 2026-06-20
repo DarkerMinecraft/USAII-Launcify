@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { User } from "../generated/prisma/client";
 
-export async function requireUser(req: Request, res: Response): Promise<User | null> {
+export const requireUser = async (req: Request, res: Response): Promise<User | null> => {
   const sub = req.auth?.payload?.sub;
   if (!sub) {
     res.status(401).json({ error: "unauthorized" });
@@ -19,4 +19,4 @@ export async function requireUser(req: Request, res: Response): Promise<User | n
   }
 
   return user;
-}
+};
