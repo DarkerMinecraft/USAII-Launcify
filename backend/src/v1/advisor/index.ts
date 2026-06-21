@@ -219,4 +219,40 @@ router.post("/search", async (req: Request<{ id: string }>, res: Response) => {
   }
 });
 
+// ── POST /v1/sessions/:id/advisor/documents/:docId/embeddings ─────────────────
+// Accepts { embeddings: number[][] }, updates DocumentChunk rows in order.
+
+router.post("/documents/:docId/embeddings", async (req: Request<{ id: string; docId: string }>, res: Response) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const { embeddings } = req.body;
+  if (!Array.isArray(embeddings)) return res.status(400).json({ error: "embeddings must be an array" });
+
+  try {
+    if (!(await ownsSession(req.params.id, user.id)))
+      return res.status(404).json({ error: "session_not_found" });
+
+    const chunks = await prisma.documentChunk.findMany({
+      where: { documentId: req.params.docId },
+      orderBy: { chunkIndex: "asc" },
+      select: { id: true },
+    });
+
+    for (let i = 0; i < Math.min(chunks.length, embeddings.length); i++) {
+      const vectorStr = `[${(embeddings[i] as number[]).join(",")}]`;
+      await prisma.$executeRaw`
+        UPDATE "DocumentChunk"
+        SET embedding = ${vectorStr}::vector
+        WHERE id = ${chunks[i].id}
+      `;
+    }
+
+    return res.json({ updated: Math.min(chunks.length, embeddings.length) });
+  } catch (err) {
+    console.error("[advisor POST embeddings]", err instanceof Error ? err.message : err);
+    return res.status(500).json({ error: "internal_server_error" });
+  }
+});
+
 export default router;
