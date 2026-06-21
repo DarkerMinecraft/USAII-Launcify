@@ -52,3 +52,22 @@ export type SessionData = {
   transcript: (DebateMessage & { id: string; sessionId: string; createdAt: string })[];
   assumptions: (AssumptionNode & { sessionId: string; createdAt: string })[];
 };
+
+export type AdvisorMessage = {
+  id: string;
+  role: "USER" | "ASSISTANT";
+  content: string;
+  createdAt: string;
+};
+
+export type AdvisorDocument = {
+  id: string;
+  filename: string;
+  uploadedAt: string;
+  chunkCount: number;
+};
+
+export type AdvisorData = {
+  messages: AdvisorMessage[];
+  documents: AdvisorDocument[];
+};

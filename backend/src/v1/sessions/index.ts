@@ -8,8 +8,11 @@ import {
   SessionStatus,
   Prisma,
 } from "../../generated/prisma/client";
+import advisorRouter from "../advisor";
 
 const router = Router();
+
+router.use("/:id/advisor", advisorRouter);
 
 const VALID_AGENT_ROLES = new Set(Object.values(AgentRole));
 const VALID_NODE_STATUSES = new Set(Object.values(NodeStatus));

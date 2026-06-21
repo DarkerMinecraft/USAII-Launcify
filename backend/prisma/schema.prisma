@@ -20,21 +20,23 @@ model User {
 }
 
 model WarRoomSession {
-  id                     String           @id @default(cuid())
+  id                     String            @id @default(cuid())
   userId                 String
   ideaSummary            String
   questionnaireResponses Json
   canvas                 Json?
-  status                 SessionStatus    @default(IN_PROGRESS)
+  status                 SessionStatus     @default(IN_PROGRESS)
   outreachDraft          Json?
   executiveSummary       Json?
   validationRoadmap      Json?
   marketResearch         Json?
-  createdAt              DateTime         @default(now())
-  updatedAt              DateTime         @updatedAt
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  advisorMessages        AdvisorMessage[]
   assumptions            AssumptionNode[]
   transcript             DebateMessage[]
-  user                   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents              SessionDocument[]
+  user                   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model DebateMessage {
@@ -62,6 +64,36 @@ model AssumptionNode {
   session     WarRoomSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
 
+model AdvisorMessage {
+  id        String         @id @default(cuid())
+  sessionId String
+  role      AdvisorRole
+  content   String
+  createdAt DateTime       @default(now())
+  session   WarRoomSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model SessionDocument {
+  id         String          @id @default(cuid())
+  sessionId  String
+  filename   String
+  s3Key      String
+  uploadedAt DateTime        @default(now())
+  chunks     DocumentChunk[]
+  session    WarRoomSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model DocumentChunk {
+  id         String                 @id @default(cuid())
+  documentId String
+  content    String
+  chunkIndex Int
+  embedding  Unsupported("vector")?
+  document   SessionDocument        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([embedding], map: "DocumentChunk_embedding_hnsw_idx")
+}
+
 enum SessionStatus {
   IN_PROGRESS
   COMPLETE
@@ -77,4 +109,9 @@ enum NodeStatus {
   VALIDATED
   UNVALIDATED
   NEEDS_INFO
+}
+
+enum AdvisorRole {
+  USER
+  ASSISTANT
 }

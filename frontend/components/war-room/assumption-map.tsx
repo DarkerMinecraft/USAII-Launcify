@@ -9,7 +9,6 @@ import Link from "next/link";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Label as ShadcnLabel } from "@/components/ui/label";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
@@ -28,6 +27,9 @@ const STATUS_CFG = {
     w: 224, h: 114,
     icon: AlertCircle,
     colX: 30,
+    bgClass: "bg-[rgba(194,105,42,0.14)] border-[rgba(194,105,42,0.55)]",
+    iconClass: "text-[#c2692a]",
+    labelClass: "text-[#c2692a]",
   },
   NEEDS_INFO: {
     label: "Needs Info",
@@ -37,6 +39,9 @@ const STATUS_CFG = {
     w: 196, h: 98,
     icon: HelpCircle,
     colX: 294,
+    bgClass: "bg-[rgba(90,87,79,0.10)] border-[rgba(90,87,79,0.38)]",
+    iconClass: "text-[#9a958c]",
+    labelClass: "text-[#9a958c]",
   },
   VALIDATED: {
     label: "Validated",
@@ -46,6 +51,9 @@ const STATUS_CFG = {
     w: 170, h: 84,
     icon: CheckCircle,
     colX: 530,
+    bgClass: "bg-[rgba(74,124,89,0.09)] border-[rgba(111,163,126,0.35)]",
+    iconClass: "text-agent-operator",
+    labelClass: "text-agent-operator",
   },
 } as const;
 
@@ -53,6 +61,11 @@ const AGENT_COLOR: Record<string, string> = {
   SKEPTIC: "#c2692a",
   STRATEGIST: "#6f93c4",
   OPERATOR: "#6fa37e",
+};
+const AGENT_CLASS: Record<string, string> = {
+  SKEPTIC: "text-agent-skeptic",
+  STRATEGIST: "text-agent-strategist",
+  OPERATOR: "text-agent-operator",
 };
 const AGENT_NAME: Record<string, string> = {
   SKEPTIC: "The Skeptic",
@@ -209,21 +222,15 @@ const AssumptionFlowNode = ({ data }: { data: Record<string, unknown> }) => {
       <Handle type="target" position={Position.Top} style={HIDDEN_HANDLE} />
       <Handle type="source" position={Position.Bottom} style={HIDDEN_HANDLE} />
       <div className="flex items-center gap-1.5 mb-2">
-        <Icon style={{ width: "10px", height: "10px", color: cfg.color, flexShrink: 0 }} />
-        <span className="font-mono uppercase" style={{ fontSize: "8px", letterSpacing: "0.14em", color: cfg.color }}>
+        <Icon className={cn("w-[10px] h-[10px] shrink-0", cfg.iconClass)} />
+        <span className={cn("font-mono uppercase text-[8px] tracking-[0.14em]", cfg.labelClass)}>
           {cfg.label}{reviewed ? " · reviewed" : ""}
         </span>
       </div>
-      <p
-        className="font-serif text-foreground"
-        style={{
-          fontSize: "12px", lineHeight: 1.4, margin: 0,
-          display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden",
-        }}
-      >
+      <p className="font-serif text-foreground text-[12px] leading-[1.4] m-0 line-clamp-3">
         {assumption.claim}
       </p>
-      <div className="font-mono uppercase mt-2" style={{ fontSize: "7.5px", letterSpacing: "0.12em", color: AGENT_COLOR[assumption.agentSource] ?? "#5a574f" }}>
+      <div className={cn("font-mono uppercase mt-2 text-[7.5px] tracking-[0.12em]", AGENT_CLASS[assumption.agentSource] ?? "text-text-faint")}>
         {AGENT_NAME[assumption.agentSource] ?? assumption.agentSource}
       </div>
     </div>
@@ -376,34 +383,30 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
   return (
     <div className="flex flex-col min-h-screen bg-war-room-bg">
 
-      <div
-        className="flex items-center gap-3 px-6 py-3 shrink-0 bg-[rgba(194,105,42,0.07)] border-b border-[rgba(194,105,42,0.22)]"
-      >
+      <div className="flex items-center gap-3 px-6 py-3 shrink-0 bg-[rgba(194,105,42,0.07)] border-b border-[rgba(194,105,42,0.22)]">
         <Info className="w-3.5 h-3.5 shrink-0 text-agent-skeptic" />
-        <p className="font-mono uppercase flex-1 text-text-muted" style={{ fontSize: "9px", letterSpacing: "0.1em" }}>
+        <p className="font-mono uppercase flex-1 text-text-muted text-[9px] tracking-[0.1em]">
           This analysis is based entirely on what you told us — it does not replace talking to real customers.
           The AI does not decide whether your idea is worth pursuing.
         </p>
         {saving && <Loader2 className="w-3 h-3 animate-spin shrink-0 text-text-faint" />}
         {saveError && !saving && (
-          <span className="font-mono uppercase shrink-0 text-agent-skeptic" style={{ fontSize: "8px", letterSpacing: "0.1em" }}>
+          <span className="font-mono uppercase shrink-0 text-agent-skeptic text-[8px] tracking-[0.1em]">
             Save failed
           </span>
         )}
       </div>
 
-      <div
-        className="flex items-center justify-between px-8 py-5 shrink-0 border-b border-border"
-      >
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-5 sm:px-8 py-4 sm:py-5 gap-3 shrink-0 border-b border-border">
         <div>
-          <h1 className="font-serif italic text-foreground" style={{ fontSize: "22px", lineHeight: 1.1 }}>
+          <h1 className="font-serif italic text-foreground text-[22px] leading-[1.1]">
             Your Assumption Map
           </h1>
-          <p className="font-mono uppercase mt-1 text-text-faint" style={{ fontSize: "9px", letterSpacing: "0.14em" }}>
-            {assumptions.length} assumption{assumptions.length !== 1 ? "s" : ""} · click any node to review
+          <p className="font-mono uppercase mt-1 text-text-faint text-[9px] tracking-[0.14em]">
+            {assumptions.length} assumption{assumptions.length !== 1 ? "s" : ""} · tap any node to review
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center flex-wrap gap-2">
           {counts.unvalidated > 0 && <StatusPill count={counts.unvalidated} status="UNVALIDATED" />}
           {counts.needsInfo > 0 && <StatusPill count={counts.needsInfo} status="NEEDS_INFO" />}
           {counts.validated > 0 && <StatusPill count={counts.validated} status="VALIDATED" />}
@@ -411,7 +414,7 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1" style={{ height: "calc(100vh - 184px)" }}>
+        <div className="flex-1 h-[calc(100dvh-200px)]">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -437,6 +440,7 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
           </ReactFlow>
         </div>
 
+        {/* Desktop side panel */}
         <AnimatePresence>
           {selectedNode && (
             <motion.div
@@ -445,7 +449,7 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 340, opacity: 0 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="w-[340px] bg-surface-1 border-l border-border flex flex-col overflow-y-auto"
+              className="hidden md:flex w-[340px] bg-surface-1 border-l border-border flex-col overflow-y-auto"
             >
               <NodePanel node={selectedNode} onClose={() => setSelected(null)} onReview={handleReview} onRemove={handleRemove} />
             </motion.div>
@@ -453,13 +457,43 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
         </AnimatePresence>
       </div>
 
-      <div
-        className="flex items-center justify-between px-8 py-4 shrink-0 border-t border-border"
-      >
-        <p className="font-serif italic text-text-dim" style={{ fontSize: "13px", maxWidth: "30rem" }}>
+      {/* Mobile bottom sheet */}
+      <AnimatePresence>
+        {selectedNode && (
+          <>
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden fixed inset-0 z-40 bg-black/50"
+              onClick={() => setSelected(null)}
+            />
+            <motion.div
+              key={`sheet-${selectedNode.id}`}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="md:hidden fixed bottom-0 left-0 right-0 z-50 max-h-[78dvh] bg-surface-1 border-t border-border rounded-t-[20px] flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]"
+            >
+              <div className="flex justify-center pt-3 pb-1 shrink-0">
+                <div className="w-9 h-1 rounded-full bg-[#3a3833]" />
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <NodePanel node={selectedNode} onClose={() => setSelected(null)} onRemediate={handleRemediate} />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 sm:px-8 py-4 shrink-0 border-t border-border">
+        <p className="font-serif italic text-text-dim text-[13px] max-w-[30rem]">
           Review your assumptions, then take your first real step in the Launchpad.
         </p>
-        <Button asChild className="gap-2.5 rounded-[9px] px-5 py-2.5 text-[14px] font-semibold">
+        <Button asChild className="gap-2.5 rounded-[9px] px-5 py-2.5 text-[14px] font-semibold shrink-0">
           <Link href={`/launchpad?sessionId=${sessionId}`}>
             Open the Launchpad
             <ArrowRight className="w-4 h-4" />
@@ -473,13 +507,12 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
 const StatusPill = ({ count, status }: { count: number; status: AssumptionStatus }) => {
   const cfg = STATUS_CFG[status];
   return (
-    <Badge
-      variant="outline"
-      className="font-mono uppercase gap-1.5 h-auto py-1 px-2.5 rounded-[5px] text-[9px] tracking-[0.12em]"
-      style={{ background: cfg.bg, borderColor: cfg.border, color: cfg.color }}
-    >
+    <span className={cn(
+      "inline-flex items-center gap-1.5 font-mono uppercase py-1 px-2.5 rounded-[5px] text-[9px] tracking-[0.12em] border",
+      cfg.bgClass, cfg.labelClass
+    )}>
       {count} {cfg.label}
-    </Badge>
+    </span>
   );
 };
 
@@ -545,14 +578,13 @@ const NodePanel = ({
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-5 py-4 shrink-0 border-b border-border">
         <div className="flex items-center gap-2">
-          <Icon style={{ width: "13px", height: "13px", color: cfg.color }} />
-          <Badge
-            variant="outline"
-            className="font-mono uppercase text-[9px] tracking-[0.12em] h-auto py-0.5 px-2 rounded-[4px]"
-            style={{ color: cfg.color, borderColor: cfg.border, background: cfg.bg }}
-          >
+          <Icon className={cn("w-[13px] h-[13px]", cfg.iconClass)} />
+          <span className={cn(
+            "inline-flex items-center font-mono uppercase text-[9px] tracking-[0.12em] py-0.5 px-2 rounded-[4px] border",
+            cfg.bgClass, cfg.labelClass
+          )}>
             {cfg.label}
-          </Badge>
+          </span>
         </div>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -567,37 +599,34 @@ const NodePanel = ({
       <div className="flex flex-col gap-5 p-5 overflow-y-auto">
         <div>
           <SectionLabel>Assumption</SectionLabel>
-          <p className="font-serif text-foreground" style={{ fontSize: "15px", lineHeight: 1.5, marginTop: "6px" }}>
+          <p className="font-serif text-foreground text-[15px] leading-[1.5] mt-[6px]">
             {node.claim}
           </p>
         </div>
 
-        <span className="font-mono uppercase" style={{ fontSize: "8.5px", letterSpacing: "0.12em", color: AGENT_COLOR[node.agentSource] ?? "#5a574f" }}>
+        <span className={cn("font-mono uppercase text-[8.5px] tracking-[0.12em]", AGENT_CLASS[node.agentSource] ?? "text-text-faint")}>
           Raised by {AGENT_NAME[node.agentSource] ?? node.agentSource}
         </span>
 
         <div>
           <SectionLabel>Why this status</SectionLabel>
-          <p className="text-text-muted" style={{ fontSize: "13px", lineHeight: 1.55, marginTop: "6px" }}>
+          <p className="text-text-muted text-[13px] leading-[1.55] mt-[6px]">
             {node.explanation}
           </p>
         </div>
 
         {node.howToTest && (
-          <div className="bg-[rgba(194,105,42,0.07)] border border-[rgba(194,105,42,0.24)] rounded-[9px] p-[12px_14px]">
-            <p className="font-mono uppercase mb-2 text-agent-skeptic" style={{ fontSize: "8px", letterSpacing: "0.13em" }}>
+          <div className="bg-[rgba(194,105,42,0.07)] border border-[rgba(194,105,42,0.24)] rounded-[9px] py-[12px] px-[14px]">
+            <p className="font-mono uppercase mb-2 text-agent-skeptic text-[8px] tracking-[0.13em]">
               How to test this
             </p>
-            <p className="text-foreground" style={{ fontSize: "12.5px", lineHeight: 1.5 }}>
+            <p className="text-foreground text-[12.5px] leading-[1.5]">
               {node.howToTest}
             </p>
           </div>
         )}
 
-        <p
-          className="font-serif italic text-text-faint border-t border-border"
-          style={{ fontSize: "11.5px", lineHeight: 1.5, paddingTop: "14px" }}
-        >
+        <p className="font-serif italic text-text-faint border-t border-border text-[11.5px] leading-[1.5] pt-[14px]">
           This status was AI-inferred from only what you told us. Verify before trusting it.
         </p>
 
@@ -708,3 +737,6 @@ const FieldTextarea = ({ label, value, onChange, placeholder, rows = 2 }: {
     />
   </div>
 );
+
+// Keep AGENT_COLOR for any external references that may still need it
+export { AGENT_COLOR };

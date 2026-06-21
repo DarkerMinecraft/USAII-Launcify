@@ -31,7 +31,7 @@ router.get("/sync", async (req, res) => {
   try {
     const user = await prisma.user.upsert({
       where: { auth0Id },
-      update: { name, picture },
+      update: { picture },
       create: { auth0Id, email, name, picture, provider },
     });
 

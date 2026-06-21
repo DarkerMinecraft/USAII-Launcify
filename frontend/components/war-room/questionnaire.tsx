@@ -16,7 +16,7 @@ import { createSession } from "@/actions/sessions";
 type Stage = "intake" | "questionnaire";
 
 const textareaClass =
-  "bg-[#1a1916] border border-[#2e2c28] rounded-[9px] px-[15px] py-3 text-[#ede9e0] text-sm leading-relaxed placeholder:text-[#5a574f] resize-y focus-visible:border-[#5a574f] focus-visible:ring-1 focus-visible:ring-[#5a574f]/20 min-h-0";
+  "bg-surface-3 border border-border rounded-[9px] px-[15px] py-3 text-foreground text-sm leading-relaxed placeholder:text-text-faint resize-y focus-visible:border-text-faint focus-visible:ring-1 focus-visible:ring-text-faint/20 min-h-0";
 
 export const Questionnaire = () => {
   const router = useRouter();
@@ -70,7 +70,7 @@ export const Questionnaire = () => {
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-8 py-16">
+    <div className="mx-auto w-full max-w-2xl px-5 sm:px-8 py-10 sm:py-16">
       <div className="eyebrow font-mono mb-4">
         War Room · Idea Intake
       </div>
@@ -87,7 +87,7 @@ export const Questionnaire = () => {
             <h1 className="font-serif italic mb-3 text-[34px] leading-[1.1] text-foreground">
               What are you building?
             </h1>
-            <p className="mb-8 leading-relaxed text-[15px] text-text-muted" style={{ maxWidth: "32rem" }}>
+            <p className="mb-8 leading-relaxed text-[15px] text-text-muted max-w-[32rem]">
               Describe your idea in a sentence or two. Three AI advisors will read it,
               then ask the questions that matter most before the debate begins.
             </p>
@@ -134,10 +134,7 @@ export const Questionnaire = () => {
             <h1 className="font-serif italic mb-3 text-[30px] leading-[1.12] text-foreground">
               Brief the room.
             </h1>
-            <p
-              className="mb-8 leading-relaxed text-[14.5px] text-text-muted"
-              style={{ maxWidth: "34rem" }}
-            >
+            <p className="mb-8 leading-relaxed text-[14.5px] text-text-muted max-w-[34rem]">
               Answer what you can — honestly. Leaving a question blank is a signal too;
               the advisors will treat it as something you haven&apos;t worked out yet.
             </p>

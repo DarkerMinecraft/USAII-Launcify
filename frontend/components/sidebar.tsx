@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Swords, Rocket, Mic, Lock, LogIn, LogOut } from "lucide-react";
+import { Swords, Rocket, Mic, BrainCircuit, Lock, LogIn, Settings } from "lucide-react";
 import { useUser } from "@auth0/nextjs-auth0";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { UserSettingsDialog } from "@/components/user-settings-dialog";
 
 const pillars = [
   {
@@ -13,7 +17,8 @@ const pillars = [
     icon: Swords,
     locked: false,
     description: "Challenge your idea",
-    accentColor: "#c2692a",
+    dotActiveClass: "bg-agent-skeptic shadow-[0_0_8px_var(--agent-skeptic)]",
+    descActiveClass: "text-agent-skeptic",
   },
   {
     label: "Launchpad",
@@ -21,7 +26,8 @@ const pillars = [
     icon: Rocket,
     locked: false,
     description: "Connect & execute",
-    accentColor: "#6fa37e",
+    dotActiveClass: "bg-agent-operator shadow-[0_0_8px_var(--agent-operator)]",
+    descActiveClass: "text-agent-operator",
   },
   {
     label: "Pitch Session",
@@ -29,25 +35,31 @@ const pillars = [
     icon: Mic,
     locked: false,
     description: "Practice & perform",
-    accentColor: "#6f93c4",
+    dotActiveClass: "bg-agent-strategist shadow-[0_0_8px_var(--agent-strategist)]",
+    descActiveClass: "text-agent-strategist",
+  },
+  {
+    label: "Strategy Room",
+    href: "/strategy-room",
+    icon: BrainCircuit,
+    locked: false,
+    description: "Advise & explore",
+    dotActiveClass: "bg-agent-strategist shadow-[0_0_8px_var(--agent-strategist)]",
+    descActiveClass: "text-agent-strategist",
   },
 ];
 
 export const Sidebar = () => {
   const pathname = usePathname();
   const { user, isLoading } = useUser();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
-    <aside
-      className="flex flex-col w-[232px] shrink-0 h-screen sticky top-0 bg-surface-1 border-r border-border"
-    >
+    <aside className="hidden md:flex flex-col w-[232px] shrink-0 h-screen sticky top-0 bg-surface-1 border-r border-border">
       {/* Logo */}
       <div className="px-5 py-6 border-b border-hairline">
         <Link href="/" className="flex items-center gap-3 group">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-serif font-bold text-base bg-primary text-primary-foreground"
-            style={{ boxShadow: "0 4px 12px -4px rgba(0,0,0,0.5)" }}
-          >
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-serif font-bold text-base bg-primary text-primary-foreground shadow-[0_4px_12px_-4px_rgba(0,0,0,0.5)]">
             L
           </div>
           <div className="flex flex-col gap-0.5">
@@ -64,10 +76,10 @@ export const Sidebar = () => {
       {/* Pillar navigation */}
       <nav className="flex flex-col gap-0.5 p-3 flex-1">
         <p className="eyebrow px-3 pb-2 pt-1">
-          The Three Pillars
+          Pillars
         </p>
 
-        {pillars.map(({ label, href, icon: Icon, locked, description, accentColor }) => {
+        {pillars.map(({ label, href, icon: Icon, locked, description, dotActiveClass, descActiveClass }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
@@ -83,24 +95,9 @@ export const Sidebar = () => {
               tabIndex={locked ? -1 : undefined}
             >
               {isActive ? (
-                <div
-                  className="shrink-0 rounded-full"
-                  style={{
-                    width: "7px",
-                    height: "7px",
-                    background: accentColor,
-                    boxShadow: `0 0 8px ${accentColor}`,
-                  }}
-                />
+                <div className={cn("shrink-0 rounded-full w-[7px] h-[7px]", dotActiveClass)} />
               ) : (
-                <div
-                  className="shrink-0 rounded-full"
-                  style={{
-                    width: "7px",
-                    height: "7px",
-                    border: "1px solid #3a3833",
-                  }}
-                />
+                <div className="shrink-0 rounded-full w-[7px] h-[7px] border border-[#3a3833]" />
               )}
 
               <div className="flex-1 min-w-0">
@@ -113,13 +110,10 @@ export const Sidebar = () => {
                   {label}
                   {locked && <Lock className="w-2.5 h-2.5 text-text-faint" aria-label="Locked" />}
                 </div>
-                <div
-                  className="mt-0.5 truncate font-mono uppercase text-[9px] text-text-faint"
-                  style={{
-                    letterSpacing: "0.08em",
-                    color: isActive ? accentColor : undefined,
-                  }}
-                >
+                <div className={cn(
+                  "mt-0.5 truncate font-mono uppercase text-[9px] tracking-[0.08em]",
+                  isActive ? descActiveClass : "text-text-faint"
+                )}>
                   {description}
                 </div>
               </div>
@@ -135,44 +129,44 @@ export const Sidebar = () => {
             …
           </div>
         ) : user ? (
-          <div className="flex items-center gap-2.5">
-            <div className="flex-1 min-w-0">
-              <p className="truncate font-medium leading-tight text-[12.5px] text-foreground">
-                {user.name ?? user.email ?? "Signed in"}
-              </p>
-              <p className="eyebrow-sm truncate mt-0.5">
-                Signed in
-              </p>
-            </div>
-            <a
-              href="/auth/logout"
-              aria-label="Sign out"
-              className="shrink-0 flex items-center justify-center rounded-lg transition-colors w-[30px] h-[30px] bg-surface-3 border border-border text-text-muted"
+          <>
+            <UserSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+            <Button
+              variant="ghost"
+              onClick={() => setSettingsOpen(true)}
+              className="flex items-center gap-2.5 w-full justify-start rounded-lg px-1 py-1.5 h-auto"
             >
-              <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
-            </a>
-          </div>
+              <div className="flex-1 min-w-0">
+                <p className="truncate font-medium leading-tight text-[12.5px] text-foreground">
+                  {user.name ?? user.email ?? "Signed in"}
+                </p>
+                <p className="eyebrow-sm truncate mt-0.5">
+                  Signed in
+                </p>
+              </div>
+              <Settings className="w-3.5 h-3.5 text-text-faint shrink-0" aria-hidden="true" />
+            </Button>
+          </>
         ) : (
-          <a
-            href="/auth/login"
-            className="flex items-center justify-center gap-2 rounded-lg transition-colors py-[9px] px-3 bg-surface-3 border border-border text-foreground text-[12.5px] font-semibold"
-          >
-            <LogIn className="w-3.5 h-3.5" aria-hidden="true" />
-            Sign in
-          </a>
+          <Button className="w-full text-[12.5px]" asChild>
+            <a href="/auth/login">
+              <LogIn className="w-3.5 h-3.5" aria-hidden="true" />
+              Sign in
+            </a>
+          </Button>
         )}
       </div>
 
       {/* Idea summary card */}
       <div className="p-3 border-t border-hairline">
-        <div className="card rounded-[11px] p-3 bg-surface-2 border border-border">
+        <Card className="rounded-[11px] p-3 bg-surface-2 border-border shadow-none ring-0 gap-0">
           <p className="eyebrow mb-2">
             Active Idea
           </p>
           <p className="font-serif italic leading-relaxed text-[12px] text-text-faint">
             No session yet. Start the War Room to begin.
           </p>
-        </div>
+        </Card>
       </div>
     </aside>
   );

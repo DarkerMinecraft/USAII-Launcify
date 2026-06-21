@@ -4,6 +4,7 @@ import { Auth0Provider } from "@auth0/nextjs-auth0";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Sidebar } from "@/components/sidebar";
+import { MobileHeader, MobileBottomNav } from "@/components/mobile-nav";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { auth0 } from "@/lib/auth0";
@@ -78,11 +79,15 @@ const RootLayout = async ({
         spectral.variable
       )}
     >
-      <body className="h-full flex bg-background text-foreground font-sans overflow-x-auto">
+      <body className="flex flex-col bg-background text-foreground font-sans overflow-x-hidden">
         <Auth0Provider>
           <TooltipProvider delayDuration={400}>
-            {session ? <Sidebar /> : null}
-            <main className="flex-1 min-h-screen overflow-auto min-w-0">{children}</main>
+            <MobileHeader />
+            <div className="flex flex-1 min-h-0">
+              <Sidebar />
+              <main className="flex-1 min-h-screen overflow-auto min-w-0 pb-16 md:pb-0">{children}</main>
+            </div>
+            <MobileBottomNav />
             <Toaster position="bottom-right" />
           </TooltipProvider>
         </Auth0Provider>

@@ -5,11 +5,11 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, Loader2, AlertTriangle, CheckCircle, Clock,
-  Trash2, Target, X,
+  Trash2, Target, X, BrainCircuit,
 } from "lucide-react";
 import { listSessions, deleteSession } from "@/actions/sessions";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -24,17 +24,13 @@ interface Session {
 const STATUS_CFG = {
   COMPLETE: {
     label: "Complete",
-    color: "#6fa37e",
-    bg: "rgba(74,124,89,0.09)",
-    border: "rgba(111,163,126,0.3)",
     Icon: CheckCircle,
+    badgeClass: "bg-[rgba(74,124,89,0.09)] border-[rgba(111,163,126,0.3)] text-agent-operator",
   },
   IN_PROGRESS: {
     label: "In Progress",
-    color: "#c2692a",
-    bg: "rgba(194,105,42,0.09)",
-    border: "rgba(194,105,42,0.3)",
     Icon: Clock,
+    badgeClass: "bg-[rgba(194,105,42,0.09)] border-[rgba(194,105,42,0.3)] text-agent-skeptic",
   },
 } as const;
 
@@ -120,16 +116,13 @@ export const SessionList = () => {
               animate={{ opacity: isDeleting ? 0.4 : 1, y: 0 }}
               exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: "hidden" }}
               transition={{ duration: 0.22, delay: i * 0.04 }}
-              style={{ position: "relative" }}
+              className="relative"
             >
-              <div
-                style={{
-                  background: "#131210",
-                  border: `1px solid ${isConfirming ? "rgba(194,105,42,0.45)" : "#2e2c28"}`,
-                  borderRadius: "11px",
-                  overflow: "hidden",
-                  transition: "border-color 0.15s",
-                }}
+              <Card
+                className={cn(
+                  "bg-surface-1 rounded-[11px] shadow-none ring-0 overflow-hidden transition-colors duration-[150ms] gap-0 py-0",
+                  isConfirming ? "border-[rgba(194,105,42,0.45)]" : "border-border"
+                )}
               >
                 {/* Main row */}
                 <div className="flex items-center gap-4 px-4 py-3.5">
@@ -137,7 +130,7 @@ export const SessionList = () => {
                     href={`/war-room/session/${s.id}`}
                     className="flex-1 min-w-0 no-underline"
                   >
-                    <p className="font-serif italic text-[14px] text-foreground" style={{ lineHeight: 1.35 }}>
+                    <p className="font-serif italic text-[14px] text-foreground leading-[1.35]">
                       {truncate(s.ideaSummary, 90)}
                     </p>
                     <p className="eyebrow-sm mt-1">
@@ -146,14 +139,10 @@ export const SessionList = () => {
                   </Link>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <Badge
-                      variant="outline"
-                      className="flex items-center gap-1.5 font-mono uppercase text-[8px] tracking-[0.1em] h-auto py-[3px] px-2 rounded-[4px]"
-                      style={{ background: cfg.bg, borderColor: cfg.border, color: cfg.color }}
-                    >
+                    <span className={cn("inline-flex items-center gap-1.5 font-mono uppercase text-[8px] tracking-[0.1em] py-[3px] px-2 rounded-[4px] border", cfg.badgeClass)}>
                       <Icon className="w-[9px] h-[9px]" />
                       {cfg.label}
-                    </Badge>
+                    </span>
 
                     {s.status === "COMPLETE" && (
                       <Tooltip>
@@ -171,6 +160,25 @@ export const SessionList = () => {
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Open Launchpad</TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    {s.status === "COMPLETE" && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Open Strategy Room"
+                            className="text-agent-strategist bg-[rgba(111,147,193,0.1)] border border-[rgba(111,147,193,0.25)] hover:bg-[rgba(111,147,193,0.2)] hover:border-[rgba(111,147,193,0.5)]"
+                            asChild
+                          >
+                            <Link href={`/strategy-room?sessionId=${s.id}`}>
+                              <BrainCircuit className="w-[11px] h-[11px]" aria-hidden="true" />
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Open Strategy Room</TooltipContent>
                       </Tooltip>
                     )}
 
@@ -239,7 +247,7 @@ export const SessionList = () => {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+              </Card>
             </motion.div>
           );
         })}

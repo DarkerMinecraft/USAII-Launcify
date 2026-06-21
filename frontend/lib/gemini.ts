@@ -62,6 +62,73 @@ export const callGemini = async (
   return text;
 }
 
+export interface ChatMessage {
+  role: "user" | "model";
+  text: string;
+}
+
+export const callGeminiChat = async (
+  systemPrompt: string,
+  history: ChatMessage[],
+  currentMessage: string,
+): Promise<string> => {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new GeminiError("GEMINI_API_KEY is not set");
+  }
+
+  const contents = [
+    ...history.map((m) => ({
+      role: m.role,
+      parts: [{ text: m.text }],
+    })),
+    { role: "user" as const, parts: [{ text: currentMessage }] },
+  ];
+
+  let text: string | undefined;
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents,
+      config: { systemInstruction: systemPrompt, temperature: 0.7 },
+    });
+    text = response.text;
+  } catch (err) {
+    throw new GeminiError(
+      `Gemini chat request failed: ${err instanceof Error ? err.message : String(err)}`,
+      err,
+    );
+  }
+
+  if (!text || !text.trim()) {
+    throw new GeminiError("Gemini returned an empty chat response");
+  }
+
+  return text;
+};
+
+export const embedText = async (text: string): Promise<number[]> => {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new GeminiError("GEMINI_API_KEY is not set");
+  }
+  try {
+    const response = await ai.models.embedContent({
+      model: "text-embedding-004",
+      contents: text,
+    });
+    const values = response.embeddings?.[0]?.values;
+    if (!values || values.length === 0) {
+      throw new GeminiError("Embedding returned no values");
+    }
+    return values;
+  } catch (err) {
+    if (err instanceof GeminiError) throw err;
+    throw new GeminiError(
+      `Embedding failed: ${err instanceof Error ? err.message : String(err)}`,
+      err,
+    );
+  }
+};
+
 /** Strips markdown code fences a model may wrap JSON in, then parses. Throws a
  *  clear GeminiParseError (with the raw text) instead of a bare SyntaxError. */
 export const parseJSON = <T>(text: string): T => {
