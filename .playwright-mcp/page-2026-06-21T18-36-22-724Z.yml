@@ -1,0 +1,52 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "L Launchify Co-Pilot" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e6]: L
+        - generic [ref=e7]:
+          - generic [ref=e8]: Launchify
+          - generic [ref=e9]: Co-Pilot
+      - navigation [ref=e10]:
+        - paragraph [ref=e11]: Pillars
+        - link "War Room Challenge your idea" [ref=e12] [cursor=pointer]:
+          - /url: /war-room
+          - generic [ref=e14]:
+            - generic [ref=e15]: War Room
+            - generic [ref=e16]: Challenge your idea
+        - link "Launchpad Connect & execute" [ref=e17] [cursor=pointer]:
+          - /url: /launchpad
+          - generic [ref=e19]:
+            - generic [ref=e20]: Launchpad
+            - generic [ref=e21]: Connect & execute
+        - link "Pitch Session Practice & perform" [ref=e22] [cursor=pointer]:
+          - /url: /pitch-session
+          - generic [ref=e24]:
+            - generic [ref=e25]: Pitch Session
+            - generic [ref=e26]: Practice & perform
+        - link "Strategy Room Advise & explore" [ref=e27] [cursor=pointer]:
+          - /url: /strategy-room
+          - generic [ref=e29]:
+            - generic [ref=e30]: Strategy Room
+            - generic [ref=e31]: Advise & explore
+      - generic [ref=e33]: …
+      - generic [ref=e35]:
+        - paragraph [ref=e36]: Active Idea
+        - paragraph [ref=e37]: No session yet. Start the War Room to begin.
+    - main [ref=e38]:
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - generic [ref=e43]: "ARENA COLUMN — count: 2"
+          - generic [ref=e44]: arena
+        - complementary [ref=e45]:
+          - heading "Round dialogue header" [level=2] [ref=e47]
+          - generic [ref=e49]:
+            - generic [ref=e50]:
+              - generic [ref=e51]: Agent · message 1
+              - paragraph [ref=e52]: This is a sample debate message number 1. It contains a couple of sentences so the bubble has realistic height and the column fills up as more arrive. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+            - generic [ref=e53]:
+              - generic [ref=e54]: Agent · message 2
+              - paragraph [ref=e55]: This is a sample debate message number 2. It contains a couple of sentences so the bubble has realistic height and the column fills up as more arrive. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e61] [cursor=pointer]:
+    - img [ref=e62]
