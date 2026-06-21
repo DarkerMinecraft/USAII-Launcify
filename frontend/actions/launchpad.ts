@@ -1,7 +1,12 @@
 "use server";
 
 import { callLLM, parseJSON, LLMError, GeminiParseError } from "@/lib/llm";
-import { OUTREACH_SYSTEM, buildOutreachPrompt, SUMMARY_SYSTEM, buildSummaryPrompt } from "@/prompts/agents";
+import {
+  OUTREACH_SYSTEM, buildOutreachPrompt,
+  SUMMARY_SYSTEM, buildSummaryPrompt,
+  VALIDATION_ROADMAP_SYSTEM, buildValidationRoadmapPrompt,
+  MARKET_RESEARCH_SYSTEM, buildMarketResearchPrompt,
+} from "@/prompts/agents";
 import type { Canvas } from "@/lib/types";
 
 export const generateOutreach = async (canvas: Canvas): Promise<Record<string, unknown>> => {
@@ -28,6 +33,34 @@ export const generateSummary = async (canvas: Canvas): Promise<Record<string, un
   } catch (err) {
     if (err instanceof LLMError) throw new Error(err.message);
     if (err instanceof GeminiParseError) throw new Error("Could not parse the executive summary");
+    throw err;
+  }
+};
+
+export const generateValidationRoadmap = async (canvas: Canvas): Promise<Record<string, unknown>> => {
+  if (!canvas || typeof canvas.ideaSummary !== "string" || !Array.isArray(canvas.assumptions)) {
+    throw new Error("canvas is required");
+  }
+  try {
+    const raw = await callLLM(VALIDATION_ROADMAP_SYSTEM, buildValidationRoadmapPrompt(canvas), { temperature: 0.3 });
+    return parseJSON<Record<string, unknown>>(raw);
+  } catch (err) {
+    if (err instanceof LLMError) throw new Error(err.message);
+    if (err instanceof GeminiParseError) throw new Error("Could not parse the validation roadmap");
+    throw err;
+  }
+};
+
+export const generateMarketResearch = async (canvas: Canvas): Promise<Record<string, unknown>> => {
+  if (!canvas || typeof canvas.ideaSummary !== "string" || !Array.isArray(canvas.assumptions)) {
+    throw new Error("canvas is required");
+  }
+  try {
+    const raw = await callLLM(MARKET_RESEARCH_SYSTEM, buildMarketResearchPrompt(canvas), { temperature: 0.4 });
+    return parseJSON<Record<string, unknown>>(raw);
+  } catch (err) {
+    if (err instanceof LLMError) throw new Error(err.message);
+    if (err instanceof GeminiParseError) throw new Error("Could not parse the market research");
     throw err;
   }
 };

@@ -26,6 +26,10 @@ model WarRoomSession {
   questionnaireResponses Json
   canvas                 Json?
   status                 SessionStatus    @default(IN_PROGRESS)
+  outreachDraft          Json?
+  executiveSummary       Json?
+  validationRoadmap      Json?
+  marketResearch         Json?
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
   assumptions            AssumptionNode[]
@@ -52,6 +56,7 @@ model AssumptionNode {
   status      NodeStatus
   explanation String
   agentSource AgentRole
+  howToTest   String?
   remediation Json?
   createdAt   DateTime       @default(now())
   session     WarRoomSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)

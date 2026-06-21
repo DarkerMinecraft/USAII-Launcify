@@ -6,7 +6,7 @@ import {
   BackendAuthError,
   BackendError,
 } from "@/lib/backend";
-import type { QA } from "@/lib/types";
+import type { QA, SessionData } from "@/lib/types";
 
 class ActionAuthError extends Error {}
 class ActionError extends Error {}
@@ -20,10 +20,9 @@ const handleBackendError = (err: unknown): never => {
 export const listSessions = async () => {
   try {
     await ensureUserSynced();
-    const res = await forwardToBackend("/v1/sessions");
-    const data = await res.json().catch(() => null);
-    if (!res.ok) throw new ActionError(data?.error ?? "Could not list sessions");
-    return data as { id: string; ideaSummary: string; status: "IN_PROGRESS" | "COMPLETE"; createdAt: string; updatedAt: string }[];
+    return await forwardToBackend<
+      { id: string; ideaSummary: string; status: "IN_PROGRESS" | "COMPLETE"; createdAt: string; updatedAt: string }[]
+    >("/v1/sessions");
   } catch (err) {
     if (err instanceof ActionAuthError || err instanceof ActionError) throw err;
     handleBackendError(err);
@@ -33,14 +32,10 @@ export const listSessions = async () => {
 export const createSession = async (ideaSummary: string, questionnaireResponses: QA[]) => {
   try {
     await ensureUserSynced();
-    const res = await forwardToBackend("/v1/sessions", {
+    return await forwardToBackend<{ id: string }>("/v1/sessions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ideaSummary, questionnaireResponses }),
+      data: { ideaSummary, questionnaireResponses },
     });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) throw new ActionError(data?.error ?? "Backend rejected the session");
-    return data as { id: string };
   } catch (err) {
     if (err instanceof ActionAuthError || err instanceof ActionError) throw err;
     handleBackendError(err);
@@ -50,10 +45,7 @@ export const createSession = async (ideaSummary: string, questionnaireResponses:
 export const getSession = async (id: string) => {
   try {
     await ensureUserSynced();
-    const res = await forwardToBackend(`/v1/sessions/${id}`);
-    const data = await res.json().catch(() => null);
-    if (!res.ok) throw new ActionError(data?.error ?? "Session not found");
-    return data;
+    return await forwardToBackend<SessionData>(`/v1/sessions/${id}`);
   } catch (err) {
     if (err instanceof ActionAuthError || err instanceof ActionError) throw err;
     handleBackendError(err);
@@ -63,14 +55,54 @@ export const getSession = async (id: string) => {
 export const updateSession = async (id: string, body: Record<string, unknown>) => {
   try {
     await ensureUserSynced();
-    const res = await forwardToBackend(`/v1/sessions/${id}`, {
+    return await forwardToBackend(`/v1/sessions/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      data: body,
     });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) throw new ActionError(data?.error ?? "Backend rejected the update");
-    return data;
+  } catch (err) {
+    if (err instanceof ActionAuthError || err instanceof ActionError) throw err;
+    handleBackendError(err);
+  }
+};
+
+export const deleteSession = async (id: string) => {
+  try {
+    await ensureUserSynced();
+    await forwardToBackend(`/v1/sessions/${id}`, { method: "DELETE" });
+  } catch (err) {
+    if (err instanceof ActionAuthError || err instanceof ActionError) throw err;
+    handleBackendError(err);
+  }
+};
+
+export const saveLaunchpadResult = async (
+  id: string,
+  field: "outreachDraft" | "executiveSummary" | "validationRoadmap" | "marketResearch",
+  data: Record<string, unknown>,
+) => {
+  try {
+    await ensureUserSynced();
+    await forwardToBackend(`/v1/sessions/${id}`, {
+      method: "PATCH",
+      data: { [field]: data },
+    });
+  } catch (err) {
+    if (err instanceof ActionAuthError || err instanceof ActionError) throw err;
+    handleBackendError(err);
+  }
+};
+
+export const updateAssumption = async (
+  sessionId: string,
+  nodeId: string,
+  update: { status?: string; claim?: string; howToTest?: string; remediation?: object | null },
+) => {
+  try {
+    await ensureUserSynced();
+    return await forwardToBackend(`/v1/sessions/${sessionId}/assumptions/${nodeId}`, {
+      method: "PATCH",
+      data: update,
+    });
   } catch (err) {
     if (err instanceof ActionAuthError || err instanceof ActionError) throw err;
     handleBackendError(err);

@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { Swords, LogIn } from "lucide-react";
 import { auth0 } from "@/lib/auth0";
 import { Questionnaire } from "@/components/war-room/questionnaire";
+
+export const metadata: Metadata = {
+  title: "War Room",
+  description: "Stress-test your startup idea against three AI advisors in a structured debate. Surface hidden assumptions before you ship.",
+  robots: { index: true, follow: true },
+};
 
 const WarRoomPage = async () => {
   const session = await auth0.getSession();
