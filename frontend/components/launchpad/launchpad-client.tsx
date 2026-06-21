@@ -12,6 +12,7 @@ import type { Canvas } from "@/lib/types";
 import { generateOutreach, generateSummary, generateValidationRoadmap, generateMarketResearch } from "@/actions/launchpad";
 import { getSession, saveLaunchpadResult } from "@/actions/sessions";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -66,6 +67,15 @@ interface MarketResearchResult {
   thingsToVerify: string[];
 }
 
+type TabId = "customer" | "summary" | "roadmap" | "market";
+
+const TAB_CONFIG = [
+  { id: "customer" as TabId, Icon: Users,      label: "Customer Connect",   accentClass: "text-agent-strategist", barClass: "bg-agent-strategist" },
+  { id: "summary"  as TabId, Icon: FileText,   label: "Executive Summary",  accentClass: "text-agent-operator",   barClass: "bg-agent-operator"   },
+  { id: "roadmap"  as TabId, Icon: Map,        label: "Validation Roadmap", accentClass: "text-agent-skeptic",    barClass: "bg-agent-skeptic"    },
+  { id: "market"   as TabId, Icon: TrendingUp, label: "Market Research",    accentClass: "text-text-muted",       barClass: "bg-border"           },
+];
+
 const useCopy = () => {
   const [copied, setCopied] = useState(false);
   const copy = useCallback((text: string) => {
@@ -79,6 +89,14 @@ const useCopy = () => {
 export const LaunchpadClient = () => {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
+
+  const [activeTab, setActiveTab] = useState<TabId>("customer");
+  const [generatedTabs, setGeneratedTabs] = useState<Record<TabId, boolean>>({
+    customer: false, summary: false, roadmap: false, market: false,
+  });
+  const markGenerated = useCallback((tab: TabId) => {
+    setGeneratedTabs(prev => ({ ...prev, [tab]: true }));
+  }, []);
 
   const [canvas, setCanvas] = useState<Canvas | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
@@ -101,11 +119,18 @@ export const LaunchpadClient = () => {
       .then((data) => {
         if (data?.canvas && typeof data.canvas.ideaSummary === "string") {
           setCanvas(data.canvas as Canvas);
-          setSavedResults({
+          const results = {
             outreachDraft: (data.outreachDraft as Record<string, unknown>) ?? null,
             executiveSummary: (data.executiveSummary as Record<string, unknown>) ?? null,
             validationRoadmap: (data.validationRoadmap as Record<string, unknown>) ?? null,
             marketResearch: (data.marketResearch as Record<string, unknown>) ?? null,
+          };
+          setSavedResults(results);
+          setGeneratedTabs({
+            customer: !!results.outreachDraft,
+            summary:  !!results.executiveSummary,
+            roadmap:  !!results.validationRoadmap,
+            market:   !!results.marketResearch,
           });
           setLoadState("ready");
         } else {
@@ -129,13 +154,12 @@ export const LaunchpadClient = () => {
           <p className="text-text-muted text-[14px] max-w-[26rem] leading-[1.6]">
             The Launchpad reads your Assumption Map. Start a War Room session to build one.
           </p>
-          <Link
-            href="/war-room"
-            className="inline-flex items-center gap-2 font-semibold bg-primary text-primary-foreground rounded-[9px] px-5 py-2.5 text-[14px] no-underline mt-2"
-          >
-            <Swords className="w-4 h-4" />
-            Go to War Room
-          </Link>
+          <Button className="mt-2 rounded-[9px] text-[14px]" asChild>
+            <Link href="/war-room">
+              <Swords className="w-4 h-4" />
+              Go to War Room
+            </Link>
+          </Button>
         </div>
       </PageShell>
     );
@@ -177,13 +201,12 @@ export const LaunchpadClient = () => {
     <PageShell>
       {sessionId && (
         <div className="px-5 sm:px-10 pt-6 sm:pt-8 pb-0">
-          <Link
-            href={`/war-room/session/${sessionId}`}
-            className="inline-flex items-center gap-2 eyebrow text-muted-foreground no-underline"
-          >
-            <ArrowLeft className="w-3 h-3" />
-            Back to War Room
-          </Link>
+          <Button variant="ghost" className="eyebrow text-muted-foreground px-0 h-auto gap-1.5" asChild>
+            <Link href={`/war-room/session/${sessionId}`}>
+              <ArrowLeft className="w-3 h-3" />
+              Back to War Room
+            </Link>
+          </Button>
         </div>
       )}
 
@@ -195,7 +218,7 @@ export const LaunchpadClient = () => {
           Stop thinking. Start doing.
         </p>
 
-        <div className="flex flex-col sm:flex-row sm:items-start gap-3 mt-5 p-4 rounded-[11px] bg-surface-2 border border-border">
+        <Card className="flex flex-col sm:flex-row sm:items-start gap-3 mt-5 p-4 rounded-[11px] bg-surface-2 border-border shadow-none ring-0">
           <div className="flex-1 min-w-0">
             <p className="eyebrow mb-[5px]">Active Idea</p>
             <p className="font-serif italic text-foreground text-[15px] leading-[1.45]">
@@ -216,20 +239,59 @@ export const LaunchpadClient = () => {
               />
             )}
           </div>
-        </div>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-px bg-border">
-        <CustomerConnectCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.outreachDraft} />
-        <ExecutiveSummaryCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.executiveSummary} />
-        <ValidationRoadmapCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.validationRoadmap} />
-        <MarketResearchCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.marketResearch} />
+      <div className="flex flex-col sm:flex-row flex-1">
+        <nav className="flex flex-row sm:flex-col border-b sm:border-b-0 sm:border-r border-border shrink-0 sm:w-44 overflow-x-auto">
+          {TAB_CONFIG.map(({ id, Icon, label, accentClass, barClass }) => {
+            const isActive = activeTab === id;
+            return (
+              <Button
+                key={id}
+                variant="ghost"
+                onClick={() => setActiveTab(id)}
+                className={cn(
+                  "relative flex items-center gap-2.5 px-4 py-3.5 justify-start h-auto rounded-none whitespace-nowrap sm:whitespace-normal sm:w-full",
+                  isActive ? "bg-surface-2 text-foreground" : "text-text-muted",
+                )}
+              >
+                {isActive && (
+                  <>
+                    <span className={cn("hidden sm:block absolute left-0 inset-y-0 w-[2px]", barClass)} />
+                    <span className={cn("block sm:hidden absolute bottom-0 inset-x-0 h-[2px]", barClass)} />
+                  </>
+                )}
+                <Icon className={cn("w-3.5 h-3.5 shrink-0", isActive ? accentClass : "text-text-faint")} />
+                <span className="font-mono uppercase text-[9px] tracking-[0.14em] leading-[1.3]">{label}</span>
+                {generatedTabs[id] && (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-agent-operator shrink-0" />
+                )}
+              </Button>
+            );
+          })}
+        </nav>
+
+        <div className="flex-1 min-w-0">
+          <div className={activeTab !== "customer" ? "hidden" : ""}>
+            <CustomerConnectCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.outreachDraft} onGenerated={() => markGenerated("customer")} />
+          </div>
+          <div className={activeTab !== "summary" ? "hidden" : ""}>
+            <ExecutiveSummaryCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.executiveSummary} onGenerated={() => markGenerated("summary")} />
+          </div>
+          <div className={activeTab !== "roadmap" ? "hidden" : ""}>
+            <ValidationRoadmapCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.validationRoadmap} onGenerated={() => markGenerated("roadmap")} />
+          </div>
+          <div className={activeTab !== "market" ? "hidden" : ""}>
+            <MarketResearchCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.marketResearch} onGenerated={() => markGenerated("market")} />
+          </div>
+        </div>
       </div>
     </PageShell>
   );
 };
 
-const CustomerConnectCard = ({ canvas, sessionId, initialResult }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null }) => {
+const CustomerConnectCard = ({ canvas, sessionId, initialResult, onGenerated }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null; onGenerated: () => void }) => {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">(initialResult ? "done" : "idle");
   const [result, setResult] = useState<OutreachResult | null>(initialResult ? initialResult as unknown as OutreachResult : null);
   const [error, setError] = useState<string | null>(null);
@@ -241,6 +303,7 @@ const CustomerConnectCard = ({ canvas, sessionId, initialResult }: { canvas: Can
       const data = await generateOutreach(canvas);
       setResult(data as unknown as OutreachResult);
       setState("done");
+      onGenerated();
       if (sessionId) void saveLaunchpadResult(sessionId, "outreachDraft", data).catch(() => {});
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not generate outreach");
@@ -264,7 +327,7 @@ const CustomerConnectCard = ({ canvas, sessionId, initialResult }: { canvas: Can
   );
 };
 
-const ExecutiveSummaryCard = ({ canvas, sessionId, initialResult }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null }) => {
+const ExecutiveSummaryCard = ({ canvas, sessionId, initialResult, onGenerated }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null; onGenerated: () => void }) => {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">(initialResult ? "done" : "idle");
   const [result, setResult] = useState<SummaryResult | null>(initialResult ? initialResult as unknown as SummaryResult : null);
   const [error, setError] = useState<string | null>(null);
@@ -276,6 +339,7 @@ const ExecutiveSummaryCard = ({ canvas, sessionId, initialResult }: { canvas: Ca
       const data = await generateSummary(canvas);
       setResult(data as unknown as SummaryResult);
       setState("done");
+      onGenerated();
       if (sessionId) void saveLaunchpadResult(sessionId, "executiveSummary", data).catch(() => {});
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not generate summary");
@@ -299,7 +363,7 @@ const ExecutiveSummaryCard = ({ canvas, sessionId, initialResult }: { canvas: Ca
   );
 };
 
-const ValidationRoadmapCard = ({ canvas, sessionId, initialResult }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null }) => {
+const ValidationRoadmapCard = ({ canvas, sessionId, initialResult, onGenerated }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null; onGenerated: () => void }) => {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">(initialResult ? "done" : "idle");
   const [result, setResult] = useState<ValidationRoadmapResult | null>(initialResult ? initialResult as unknown as ValidationRoadmapResult : null);
   const [error, setError] = useState<string | null>(null);
@@ -311,6 +375,7 @@ const ValidationRoadmapCard = ({ canvas, sessionId, initialResult }: { canvas: C
       const data = await generateValidationRoadmap(canvas);
       setResult(data as unknown as ValidationRoadmapResult);
       setState("done");
+      onGenerated();
       if (sessionId) void saveLaunchpadResult(sessionId, "validationRoadmap", data).catch(() => {});
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not generate the roadmap");
@@ -334,7 +399,7 @@ const ValidationRoadmapCard = ({ canvas, sessionId, initialResult }: { canvas: C
   );
 };
 
-const MarketResearchCard = ({ canvas, sessionId, initialResult }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null }) => {
+const MarketResearchCard = ({ canvas, sessionId, initialResult, onGenerated }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null; onGenerated: () => void }) => {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">(initialResult ? "done" : "idle");
   const [result, setResult] = useState<MarketResearchResult | null>(initialResult ? initialResult as unknown as MarketResearchResult : null);
   const [error, setError] = useState<string | null>(null);
@@ -346,6 +411,7 @@ const MarketResearchCard = ({ canvas, sessionId, initialResult }: { canvas: Canv
       const data = await generateMarketResearch(canvas);
       setResult(data as unknown as MarketResearchResult);
       setState("done");
+      onGenerated();
       if (sessionId) void saveLaunchpadResult(sessionId, "marketResearch", data).catch(() => {});
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not generate market research");
@@ -383,7 +449,7 @@ const ToolCard = ({
   error: string | null;
   children?: React.ReactNode;
 }) => (
-  <div className="flex flex-col bg-background min-h-[480px] sm:min-h-[520px]">
+  <Card className="flex flex-col bg-background min-h-[480px] sm:min-h-[520px] rounded-none shadow-none ring-0 border-0 gap-0 py-0">
     <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-6 border-b border-border">
       <div className="flex items-center gap-2.5 mb-4">
         {icon}
@@ -444,7 +510,7 @@ const ToolCard = ({
         )}
       </AnimatePresence>
     </div>
-  </div>
+  </Card>
 );
 
 const OutreachResults = ({ result }: { result: OutreachResult }) => {

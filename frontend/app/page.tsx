@@ -2,6 +2,8 @@ import Link from "next/link";
 import { LogIn, Plus, Swords, Target, Lightbulb } from "lucide-react";
 import { auth0 } from "@/lib/auth0";
 import { SessionList } from "@/components/home/session-list";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 const pillars = [
@@ -50,13 +52,12 @@ const Home = async () => {
           </p>
         </div>
 
-        <Link
-          href="/war-room"
-          className="inline-flex items-center gap-2.5 font-semibold mb-12 bg-primary text-primary-foreground rounded-[9px] py-[11px] px-5 text-[14px] no-underline"
-        >
-          <Plus className="w-4 h-4" />
-          New War Room session
-        </Link>
+        <Button className="mb-12 text-[14px] rounded-[9px]" asChild>
+          <Link href="/war-room">
+            <Plus className="w-4 h-4" />
+            New War Room session
+          </Link>
+        </Button>
 
         <div>
           <p className="eyebrow font-mono mb-4">Your Sessions</p>
@@ -90,19 +91,18 @@ const Home = async () => {
         assumptions, market gaps, and execution risks. You decide what to do with it.
       </p>
 
-      <a
-        href="/auth/login"
-        className="inline-flex items-center gap-2.5 font-semibold bg-primary text-primary-foreground rounded-[9px] py-3 px-[22px] text-[14.5px] no-underline"
-      >
-        <LogIn className="w-4 h-4" />
-        Sign in to begin
-      </a>
+      <Button size="lg" className="text-[14.5px] rounded-[9px]" asChild>
+        <a href="/auth/login">
+          <LogIn className="w-4 h-4" />
+          Sign in to begin
+        </a>
+      </Button>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-16 w-full">
         {pillars.map(({ icon: Icon, role, label, desc, cardClass, accentClass }) => (
-          <div
+          <Card
             key={label}
-            className={cn("flex flex-col gap-3 rounded-[13px] py-[18px] px-5 border", cardClass)}
+            className={cn("gap-3 rounded-[13px] py-[18px] px-5 shadow-none ring-0", cardClass)}
           >
             <div className={cn("font-mono uppercase text-[9px] tracking-[0.16em]", accentClass)}>
               {role}
@@ -116,7 +116,7 @@ const Home = async () => {
             <p className="leading-relaxed text-[12.5px] text-text-dim">
               {desc}
             </p>
-          </div>
+          </Card>
         ))}
       </div>
 

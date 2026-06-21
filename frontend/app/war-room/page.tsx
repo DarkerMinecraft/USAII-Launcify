@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Swords, LogIn } from "lucide-react";
 import { auth0 } from "@/lib/auth0";
 import { Questionnaire } from "@/components/war-room/questionnaire";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "War Room",
@@ -27,13 +28,12 @@ const WarRoomPage = async () => {
           assumption map.
         </p>
 
-        <a
-          href="/auth/login"
-          className="inline-flex items-center gap-2.5 font-semibold transition-colors bg-primary text-primary-foreground rounded-[9px] py-3 px-[22px] text-[14.5px] no-underline"
-        >
-          <LogIn className="w-4 h-4" />
-          Sign in to continue
-        </a>
+        <Button size="lg" className="text-[14.5px] rounded-[9px]" asChild>
+          <a href="/auth/login">
+            <LogIn className="w-4 h-4" />
+            Sign in to continue
+          </a>
+        </Button>
       </div>
     );
   }

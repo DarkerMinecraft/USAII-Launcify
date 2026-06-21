@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { auth0 } from "@/lib/auth0";
 import { WarRoomArena } from "@/components/war-room/war-room-arena";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "War Room Session",
@@ -21,12 +22,9 @@ const WarRoomSessionPage = async ({
         <p className="font-serif italic mb-6 text-[26px] text-foreground">
           Sign in to enter the War Room.
         </p>
-        <a
-          href="/auth/login"
-          className="inline-flex items-center gap-2 font-semibold bg-primary text-primary-foreground rounded-[9px] py-3 px-[22px] text-[14.5px] no-underline"
-        >
-          Sign in
-        </a>
+        <Button size="lg" className="text-[14.5px] rounded-[9px]" asChild>
+          <a href="/auth/login">Sign in</a>
+        </Button>
       </div>
     );
   }
