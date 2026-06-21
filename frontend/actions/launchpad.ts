@@ -9,12 +9,12 @@ import {
 } from "@/prompts/agents";
 import type { Canvas } from "@/lib/types";
 
-export const generateOutreach = async (canvas: Canvas): Promise<Record<string, unknown>> => {
+export const generateOutreach = async (canvas: Canvas, userContext?: string): Promise<Record<string, unknown>> => {
   if (!canvas || typeof canvas.ideaSummary !== "string" || !Array.isArray(canvas.assumptions)) {
     throw new Error("canvas is required");
   }
   try {
-    const raw = await callLLM(OUTREACH_SYSTEM, buildOutreachPrompt(canvas), { temperature: 0.5 });
+    const raw = await callLLM(OUTREACH_SYSTEM, buildOutreachPrompt(canvas, userContext), { temperature: 0.5 });
     return parseJSON<Record<string, unknown>>(raw);
   } catch (err) {
     if (err instanceof LLMError) throw new Error(err.message);
@@ -23,12 +23,12 @@ export const generateOutreach = async (canvas: Canvas): Promise<Record<string, u
   }
 };
 
-export const generateSummary = async (canvas: Canvas): Promise<Record<string, unknown>> => {
+export const generateSummary = async (canvas: Canvas, userContext?: string): Promise<Record<string, unknown>> => {
   if (!canvas || typeof canvas.ideaSummary !== "string" || !Array.isArray(canvas.assumptions)) {
     throw new Error("canvas is required");
   }
   try {
-    const raw = await callLLM(SUMMARY_SYSTEM, buildSummaryPrompt(canvas), { temperature: 0.3 });
+    const raw = await callLLM(SUMMARY_SYSTEM, buildSummaryPrompt(canvas, userContext), { temperature: 0.3 });
     return parseJSON<Record<string, unknown>>(raw);
   } catch (err) {
     if (err instanceof LLMError) throw new Error(err.message);
@@ -37,12 +37,12 @@ export const generateSummary = async (canvas: Canvas): Promise<Record<string, un
   }
 };
 
-export const generateValidationRoadmap = async (canvas: Canvas): Promise<Record<string, unknown>> => {
+export const generateValidationRoadmap = async (canvas: Canvas, userContext?: string): Promise<Record<string, unknown>> => {
   if (!canvas || typeof canvas.ideaSummary !== "string" || !Array.isArray(canvas.assumptions)) {
     throw new Error("canvas is required");
   }
   try {
-    const raw = await callLLM(VALIDATION_ROADMAP_SYSTEM, buildValidationRoadmapPrompt(canvas), { temperature: 0.3 });
+    const raw = await callLLM(VALIDATION_ROADMAP_SYSTEM, buildValidationRoadmapPrompt(canvas, userContext), { temperature: 0.3 });
     return parseJSON<Record<string, unknown>>(raw);
   } catch (err) {
     if (err instanceof LLMError) throw new Error(err.message);
@@ -51,12 +51,12 @@ export const generateValidationRoadmap = async (canvas: Canvas): Promise<Record<
   }
 };
 
-export const generateMarketResearch = async (canvas: Canvas): Promise<Record<string, unknown>> => {
+export const generateMarketResearch = async (canvas: Canvas, userContext?: string): Promise<Record<string, unknown>> => {
   if (!canvas || typeof canvas.ideaSummary !== "string" || !Array.isArray(canvas.assumptions)) {
     throw new Error("canvas is required");
   }
   try {
-    const raw = await callLLM(MARKET_RESEARCH_SYSTEM, buildMarketResearchPrompt(canvas), { temperature: 0.4 });
+    const raw = await callLLM(MARKET_RESEARCH_SYSTEM, buildMarketResearchPrompt(canvas, userContext), { temperature: 0.4 });
     return parseJSON<Record<string, unknown>>(raw);
   } catch (err) {
     if (err instanceof LLMError) throw new Error(err.message);

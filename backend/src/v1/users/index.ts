@@ -9,6 +9,12 @@ const UpdateProfileSchema = z.object({
   name: z.string().min(1, "Name cannot be empty").max(100),
 });
 
+router.get("/me", async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  return res.json({ id: user.id, name: user.name, email: user.email, picture: user.picture });
+});
+
 router.patch("/me", async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;

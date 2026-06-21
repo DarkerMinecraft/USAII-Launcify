@@ -12,10 +12,21 @@ const handleBackendError = (err: unknown): never => {
   throw new ActionError("Could not reach the backend");
 };
 
-export const updateProfile = async (name: string) => {
+type DbProfile = { id: string; name: string | null; email: string; picture: string | null };
+
+export const getProfile = async (): Promise<DbProfile | null> => {
   try {
     await ensureUserSynced();
-    return await forwardToBackend<{ id: string; name: string | null; email: string; picture: string | null }>(
+    return await forwardToBackend<DbProfile>("/v1/users/me");
+  } catch {
+    return null;
+  }
+};
+
+export const updateProfile = async (name: string): Promise<DbProfile | undefined> => {
+  try {
+    await ensureUserSynced();
+    return await forwardToBackend<DbProfile>(
       "/v1/users/me",
       { method: "PATCH", data: { name } },
     );

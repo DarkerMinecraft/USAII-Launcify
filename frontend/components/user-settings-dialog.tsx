@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import { useUser } from "@auth0/nextjs-auth0";
 import { toast } from "sonner";
 import { Mail, KeyRound, ShieldCheck, LogOut, Globe } from "lucide-react";
-import { updateProfile, sendPasswordReset } from "@/actions/profile";
+import { updateProfile, sendPasswordReset, getProfile } from "@/actions/profile";
 import {
   Dialog,
   DialogContent,
@@ -130,11 +130,19 @@ const ProfileTab = ({
 }) => {
   const [name, setName] = useState("");
   const [saving, startSaving] = useTransition();
-  const [lastSavedName, setLastSavedName] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    setName(lastSavedName ?? user?.name ?? "");
-  }, [user?.name, lastSavedName]);
+    getProfile()
+      .then(p => {
+        const fallback = (() => {
+          const n = user?.name ?? "";
+          const e = user?.email ?? "";
+          return (!n || n === e || n.includes("@")) ? "" : n;
+        })();
+        setName(p?.name || fallback);
+      })
+      .catch(() => setName(user?.name ?? ""));
+  }, [user?.name, user?.email]);
 
   const save = () => {
     const trimmed = name.trim();
@@ -143,7 +151,6 @@ const ProfileTab = ({
       try {
         await updateProfile(trimmed);
         toast.success("Profile updated");
-        setLastSavedName(trimmed);
         onSaved?.(trimmed);
         onClose();
       } catch {

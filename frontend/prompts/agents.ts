@@ -144,6 +144,13 @@ ${formatTranscript(debate)}
 Give your closing statement. Identify the 1–2 most critical unresolved questions or assumptions from the full debate that the founder needs to validate before moving forward. Be direct and specific.`;
 }
 
+// ─── User context formatter (Founder's Log + per-tab context) ────────────────
+
+const formatUserContext = (userContext?: string): string =>
+  userContext?.trim()
+    ? `\nFOUNDER'S REAL-WORLD DISCOVERIES (logged since the War Room — treat as higher-fidelity signal than War Room assumptions where they conflict):\n${userContext.trim()}\n`
+    : "";
+
 // ─── Canvas formatters (shared by Launchpad prompts) ─────────────────────────
 
 const formatQAForCanvas = (responses: QA[]): string => {
@@ -180,7 +187,7 @@ Rules:
 - End with 2–3 sentences of personalization guidance (what to research before sending)
 - Return a JSON object — no markdown, no explanation, raw JSON only`;
 
-export const buildOutreachPrompt = (canvas: Canvas): string => {
+export const buildOutreachPrompt = (canvas: Canvas, userContext?: string): string => {
   const riskAssumptions = canvas.assumptions.filter(
     (a) => (a.status === "UNVALIDATED" || a.status === "NEEDS_INFO") && !a.remediation
   );
@@ -195,7 +202,7 @@ ${formatAssumptionsForCanvas(canvas.assumptions)}
 
 UNVALIDATED / NEEDS-INFO ASSUMPTIONS (highest risk, not yet reviewed by founder):
 ${riskAssumptions.length > 0 ? riskAssumptions.map((a) => `- [${a.status}] ${a.claim}`).join("\n") : "(none remaining — all reviewed)"}
-
+${formatUserContext(userContext)}
 Generate outreach targeting the person who can validate the most critical unvalidated assumption above.
 
 Return this JSON exactly:
@@ -227,7 +234,7 @@ Rules:
 - Never say "this will succeed" or imply the idea is proven
 - Return a JSON object — no markdown, no explanation, raw JSON only`;
 
-export const buildSummaryPrompt = (canvas: Canvas): string => {
+export const buildSummaryPrompt = (canvas: Canvas, userContext?: string): string => {
   const unvalidated = canvas.assumptions.filter(
     (a) => (a.status === "UNVALIDATED" || a.status === "NEEDS_INFO") && !a.remediation
   );
@@ -245,7 +252,7 @@ ${formatAssumptionsForCanvas(canvas.assumptions)}
 
 VALIDATED (${validated.length}): ${validated.map((a) => a.claim).join("; ") || "none"}
 UNVALIDATED / NEEDS INFO (${unvalidated.length}): ${unvalidated.map((a) => a.claim).join("; ") || "none"}
-
+${formatUserContext(userContext)}
 Generate a structured executive summary.
 
 Return this JSON exactly:
@@ -274,7 +281,7 @@ Rules:
 - Never say the idea is ready to build before key unknowns are resolved
 - Return a JSON object — no markdown, no explanation, raw JSON only`;
 
-export const buildValidationRoadmapPrompt = (canvas: Canvas): string => {
+export const buildValidationRoadmapPrompt = (canvas: Canvas, userContext?: string): string => {
   const unvalidated = canvas.assumptions.filter(
     (a) => (a.status === "UNVALIDATED" || a.status === "NEEDS_INFO") && !a.remediation
   );
@@ -292,7 +299,7 @@ ${formatAssumptionsForCanvas(canvas.assumptions)}
 
 VALIDATED (${validated.length}): ${validated.map((a) => a.claim).join("; ") || "none"}
 UNVALIDATED / NEEDS INFO (${unvalidated.length}): ${unvalidated.map((a) => a.claim).join("; ") || "none"}
-
+${formatUserContext(userContext)}
 Build a prioritized validation roadmap for this founder.
 
 Return this JSON exactly:
@@ -325,7 +332,7 @@ Rules:
 - Differentiation must be specific to this idea — no generic positioning advice
 - Return a JSON object — no markdown, no explanation, raw JSON only`;
 
-export const buildMarketResearchPrompt = (canvas: Canvas): string => {
+export const buildMarketResearchPrompt = (canvas: Canvas, userContext?: string): string => {
   return `FOUNDER'S IDEA: ${canvas.ideaSummary}
 
 QUESTIONNAIRE RESPONSES:
@@ -333,7 +340,7 @@ ${formatQAForCanvas(canvas.questionnaireResponses)}
 
 ASSUMPTION MAP SUMMARY:
 ${formatAssumptionsForCanvas(canvas.assumptions)}
-
+${formatUserContext(userContext)}
 Generate a market research brief for this idea.
 
 Return this JSON exactly:

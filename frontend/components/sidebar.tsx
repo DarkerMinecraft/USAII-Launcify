@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Swords, Rocket, Mic, BrainCircuit, Lock, LogIn, Settings } from "lucide-react";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { UserSettingsDialog } from "@/components/user-settings-dialog";
+import { getProfile } from "@/actions/profile";
 
 const pillars = [
   {
@@ -54,9 +55,17 @@ export const Sidebar = () => {
   const { user, isLoading } = useUser();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [savedName, setSavedName] = useState<string | undefined>(undefined);
+  const [dbName, setDbName] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (user) {
+      getProfile().then(p => { if (p?.name) setDbName(p.name); }).catch(() => {});
+    }
+  }, [user]);
 
   const resolvedName = (() => {
     if (savedName) return savedName;
+    if (dbName) return dbName;
     const n = user?.name ?? "";
     const e = user?.email ?? "";
     if (!n || n === e || n.includes("@")) {

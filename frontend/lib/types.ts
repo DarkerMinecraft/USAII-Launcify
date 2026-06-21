@@ -30,11 +30,25 @@ export type DebateMessage = {
   content: string;
 };
 
+export type ConversationNote = {
+  id: string;
+  who: string;
+  insight: string;
+  date: string;
+};
+
+export type FounderLog = {
+  conversations: ConversationNote[];
+  learnings: string[];
+  openQuestions: string[];
+};
+
 export type Canvas = {
   ideaSummary: string;
   questionnaireResponses: QA[];
   assumptions: AssumptionNode[];
   lastUpdated: string;
+  founderLog?: FounderLog;
 };
 
 export type LaunchpadKey = "outreachDraft" | "executiveSummary" | "validationRoadmap" | "marketResearch";
