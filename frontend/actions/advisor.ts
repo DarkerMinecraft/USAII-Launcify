@@ -88,8 +88,8 @@ export const uploadDocument = async (
       chunks: string[];
     }>(`/v1/sessions/${sessionId}/advisor/documents`, { method: "POST", data: formData });
 
-    // Embed chunks non-blocking so RAG search works immediately after upload
-    void embedDocumentChunks(sessionId, result.documentId, result.chunks);
+    // Await embedding so chunks are searchable when the client receives the response
+    await embedDocumentChunks(sessionId, result.documentId, result.chunks);
 
     return {
       id: result.documentId,

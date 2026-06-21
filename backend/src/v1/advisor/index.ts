@@ -108,6 +108,10 @@ router.post("/documents", upload.single("file"), async (req: Request<{ id: strin
   if (!req.file) return res.status(400).json({ error: "file_required" });
   const { mimetype, originalname, buffer } = req.file;
 
+  // Track created resources so we can clean them up on error
+  let docId: string | undefined;
+  let s3Key: string | undefined;
+
   try {
     if (!(await ownsSession(req.params.id, user.id)))
       return res.status(404).json({ error: "session_not_found" });
@@ -116,8 +120,9 @@ router.post("/documents", upload.single("file"), async (req: Request<{ id: strin
     const doc = await prisma.sessionDocument.create({
       data: { sessionId: req.params.id, filename: originalname, s3Key: "" },
     });
+    docId = doc.id;
 
-    const s3Key = `sessions/${req.params.id}/docs/${doc.id}/${originalname}`;
+    s3Key = `sessions/${req.params.id}/docs/${doc.id}/${originalname}`;
     await prisma.sessionDocument.update({ where: { id: doc.id }, data: { s3Key } });
 
     // Upload raw file to S3
@@ -155,6 +160,13 @@ router.post("/documents", upload.single("file"), async (req: Request<{ id: strin
     });
   } catch (err) {
     console.error("[advisor POST documents]", err instanceof Error ? err.message : err);
+    // Clean up orphaned DB record and S3 object if they were created before the error
+    if (docId) {
+      await prisma.sessionDocument.delete({ where: { id: docId } }).catch(() => {});
+    }
+    if (s3Key) {
+      await deleteFromS3(s3Key).catch(() => {});
+    }
     return res.status(500).json({ error: "internal_server_error" });
   }
 });
