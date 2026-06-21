@@ -53,6 +53,7 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  themeColor: "#ede9e0",
 };
 
 const RootLayout = ({
