@@ -8,6 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { GeminiLiveClient, type SessionState } from '@/lib/gemini-live-client';
 import { getGeminiToken } from '@/actions/gemini';
+import { checkPermission, PermissionType } from 'browser-permissions-helper';
 
 let _activeClient: GeminiLiveClient | null = null;
 
@@ -76,6 +77,13 @@ export const SessionUi = () => {
     track.addEventListener('ended', handleEnded);
     return () => track.removeEventListener('ended', handleEnded);
   }, [screenStream]);
+
+  // Proactively check mic permission on mount — skip the permission screen if already granted
+  useEffect(() => {
+    checkPermission(PermissionType.Microphone).then(status => {
+      if (status === 'granted') setPermPhase('ready');
+    }).catch(() => { /* Permissions API unavailable — user must click the button */ });
+  }, []);
 
   // Connect to Gemini immediately on mount — this is a WebSocket, no media needed
   useEffect(() => {
@@ -159,15 +167,9 @@ export const SessionUi = () => {
     } catch (err) {
       console.error(err);
       if (err instanceof DOMException && err.name === 'NotAllowedError') {
-        // Check if permission is hard-blocked vs. just dismissed to give a better message
-        let blocked = false;
-        try {
-          const perm = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-          blocked = perm.state === 'denied';
-        } catch { /* permissions API unavailable */ }
-
+        const status = await checkPermission(PermissionType.Microphone).catch(() => 'prompt' as const);
         setMicError(
-          blocked
+          status === 'denied'
             ? 'Microphone is blocked in your browser settings. Click the lock icon → Site settings → Microphone → Allow, then reload the page.'
             : 'Microphone access was denied. Please allow microphone access when the browser prompts you.'
         );
