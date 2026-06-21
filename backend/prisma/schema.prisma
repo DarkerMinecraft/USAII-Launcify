@@ -20,22 +20,23 @@ model User {
 }
 
 model WarRoomSession {
-  id                     String           @id @default(cuid())
+  id                     String              @id @default(cuid())
   userId                 String
   ideaSummary            String
   questionnaireResponses Json
   canvas                 Json?
-  status                 SessionStatus    @default(IN_PROGRESS)
+  status                 SessionStatus       @default(IN_PROGRESS)
   outreachDraft          Json?
   executiveSummary       Json?
   validationRoadmap      Json?
   marketResearch         Json?
-  createdAt              DateTime         @default(now())
-  updatedAt              DateTime         @updatedAt
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
   assumptions            AssumptionNode[]
   transcript             DebateMessage[]
   advisorMessages        AdvisorMessage[]
-  user                   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents              SessionDocument[]
+  user                   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model DebateMessage {
@@ -92,4 +93,22 @@ model AdvisorMessage {
 enum AdvisorRole {
   USER
   ASSISTANT
+}
+
+model SessionDocument {
+  id         String          @id @default(cuid())
+  sessionId  String
+  session    WarRoomSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  filename   String
+  s3Key      String
+  uploadedAt DateTime        @default(now())
+  chunks     DocumentChunk[]
+}
+
+model DocumentChunk {
+  id         String          @id @default(cuid())
+  documentId String
+  document   SessionDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content    String
+  chunkIndex Int
 }
