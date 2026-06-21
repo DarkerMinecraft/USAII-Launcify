@@ -53,6 +53,8 @@ const pillars = [
 export const Sidebar = () => {
   const pathname = usePathname();
   const { user, isLoading } = useUser();
+
+  if (pathname === "/") return null;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [savedName, setSavedName] = useState<string | undefined>(undefined);
   const [dbName, setDbName] = useState<string | undefined>(undefined);
