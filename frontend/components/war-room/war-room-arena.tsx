@@ -393,7 +393,7 @@ export const WarRoomArena = ({ id }: { id: string }) => {
             transition={{ duration: 0.7 }}
             className="flex min-h-screen flex-1 flex-col xl:h-screen xl:min-h-0 xl:overflow-hidden"
           >
-            <div className="grid flex-1 grid-cols-1 xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_390px]">
+            <div className="grid flex-1 grid-cols-1 xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_390px] xl:grid-rows-[minmax(0,1fr)]">
               <section className="flex min-h-[600px] min-w-0 flex-col xl:min-h-0">
                 <div className="flex items-end justify-between gap-5 px-8 pb-1 pt-8">
                   <div className="min-w-0">
