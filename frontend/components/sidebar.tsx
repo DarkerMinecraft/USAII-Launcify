@@ -39,43 +39,22 @@ export const Sidebar = () => {
 
   return (
     <aside
-      className="flex flex-col w-[232px] shrink-0 h-screen sticky top-0"
-      style={{
-        background: "#131210",
-        borderRight: "1px solid #2e2c28",
-      }}
+      className="flex flex-col w-[232px] shrink-0 h-screen sticky top-0 bg-surface-1 border-r border-border"
     >
       {/* Logo */}
-      <div
-        className="px-5 py-6"
-        style={{ borderBottom: "1px solid #1f1e1b" }}
-      >
+      <div className="px-5 py-6 border-b border-hairline">
         <Link href="/" className="flex items-center gap-3 group">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-serif font-bold text-base"
-            style={{
-              background: "#ede9e0",
-              color: "#131210",
-              boxShadow: "0 4px 12px -4px rgba(0,0,0,0.5)",
-            }}
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-serif font-bold text-base bg-primary text-primary-foreground"
+            style={{ boxShadow: "0 4px 12px -4px rgba(0,0,0,0.5)" }}
           >
-            F
+            L
           </div>
           <div className="flex flex-col gap-0.5">
-            <span
-              className="font-serif font-semibold leading-none"
-              style={{ color: "#ede9e0", fontSize: "15px" }}
-            >
+            <span className="font-serif font-semibold leading-none text-foreground text-[15px]">
               Launchify
             </span>
-            <span
-              className="font-mono leading-none uppercase"
-              style={{
-                fontSize: "8.5px",
-                letterSpacing: "0.16em",
-                color: "#5a574f",
-              }}
-            >
+            <span className="eyebrow-sm leading-none">
               Co-Pilot
             </span>
           </div>
@@ -84,14 +63,7 @@ export const Sidebar = () => {
 
       {/* Pillar navigation */}
       <nav className="flex flex-col gap-0.5 p-3 flex-1">
-        <p
-          className="font-mono uppercase px-3 pb-2 pt-1"
-          style={{
-            fontSize: "9px",
-            letterSpacing: "0.16em",
-            color: "#5a574f",
-          }}
-        >
+        <p className="eyebrow px-3 pb-2 pt-1">
           The Three Pillars
         </p>
 
@@ -103,20 +75,10 @@ export const Sidebar = () => {
               href={href}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group",
-                isActive ? "" : locked ? "opacity-50" : ""
-              )}
-              style={
                 isActive
-                  ? {
-                      background: "#1a1916",
-                      border: "1px solid #2e2c28",
-                      color: "#ede9e0",
-                    }
-                  : {
-                      border: "1px solid transparent",
-                      color: "#5a574f",
-                    }
-              }
+                  ? "bg-surface-3 border border-border text-foreground"
+                  : cn("border border-transparent text-text-faint", locked ? "opacity-50" : "")
+              )}
               aria-disabled={locked}
               tabIndex={locked ? -1 : undefined}
             >
@@ -143,18 +105,19 @@ export const Sidebar = () => {
 
               <div className="flex-1 min-w-0">
                 <div
-                  className="leading-none flex items-center gap-1.5 font-medium"
-                  style={{ fontSize: "13.5px", color: isActive ? "#ede9e0" : "#7a7670" }}
+                  className={cn(
+                    "leading-none flex items-center gap-1.5 font-medium text-[13.5px]",
+                    isActive ? "text-foreground" : "text-text-dim"
+                  )}
                 >
                   {label}
-                  {locked && <Lock className="w-2.5 h-2.5" style={{ color: "#5a574f" }} />}
+                  {locked && <Lock className="w-2.5 h-2.5 text-text-faint" aria-label="Locked" />}
                 </div>
                 <div
-                  className="mt-0.5 truncate font-mono uppercase"
+                  className="mt-0.5 truncate font-mono uppercase text-[9px] text-text-faint"
                   style={{
-                    fontSize: "9px",
                     letterSpacing: "0.08em",
-                    color: isActive ? accentColor : "#5a574f",
+                    color: isActive ? accentColor : undefined,
                   }}
                 >
                   {description}
@@ -166,87 +129,47 @@ export const Sidebar = () => {
       </nav>
 
       {/* Auth affordance */}
-      <div className="p-3" style={{ borderTop: "1px solid #1f1e1b" }}>
+      <div className="p-3 border-t border-hairline">
         {isLoading ? (
-          <div
-            className="font-mono uppercase px-1 py-2"
-            style={{ fontSize: "9px", letterSpacing: "0.14em", color: "#5a574f" }}
-          >
+          <div className="eyebrow px-1 py-2">
             …
           </div>
         ) : user ? (
           <div className="flex items-center gap-2.5">
             <div className="flex-1 min-w-0">
-              <p
-                className="truncate font-medium leading-tight"
-                style={{ fontSize: "12.5px", color: "#ede9e0" }}
-              >
+              <p className="truncate font-medium leading-tight text-[12.5px] text-foreground">
                 {user.name ?? user.email ?? "Signed in"}
               </p>
-              <p
-                className="truncate font-mono uppercase mt-0.5"
-                style={{ fontSize: "8.5px", letterSpacing: "0.1em", color: "#5a574f" }}
-              >
+              <p className="eyebrow-sm truncate mt-0.5">
                 Signed in
               </p>
             </div>
             <a
               href="/auth/logout"
-              title="Sign out"
-              className="shrink-0 flex items-center justify-center rounded-lg transition-colors"
-              style={{
-                width: "30px",
-                height: "30px",
-                background: "#1a1916",
-                border: "1px solid #2e2c28",
-                color: "#9a958c",
-              }}
+              aria-label="Sign out"
+              className="shrink-0 flex items-center justify-center rounded-lg transition-colors w-[30px] h-[30px] bg-surface-3 border border-border text-text-muted"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
             </a>
           </div>
         ) : (
           <a
             href="/auth/login"
-            className="flex items-center justify-center gap-2 rounded-lg transition-colors"
-            style={{
-              padding: "9px 12px",
-              background: "#1a1916",
-              border: "1px solid #2e2c28",
-              color: "#ede9e0",
-              fontSize: "12.5px",
-              fontWeight: 600,
-            }}
+            className="flex items-center justify-center gap-2 rounded-lg transition-colors py-[9px] px-3 bg-surface-3 border border-border text-foreground text-[12.5px] font-semibold"
           >
-            <LogIn className="w-3.5 h-3.5" />
+            <LogIn className="w-3.5 h-3.5" aria-hidden="true" />
             Sign in
           </a>
         )}
       </div>
 
       {/* Idea summary card */}
-      <div className="p-3" style={{ borderTop: "1px solid #1f1e1b" }}>
-        <div
-          className="rounded-[11px] p-3"
-          style={{
-            background: "#15140f",
-            border: "1px solid #2e2c28",
-          }}
-        >
-          <p
-            className="font-mono uppercase mb-2"
-            style={{
-              fontSize: "9px",
-              letterSpacing: "0.14em",
-              color: "#5a574f",
-            }}
-          >
+      <div className="p-3 border-t border-hairline">
+        <div className="card rounded-[11px] p-3 bg-surface-2 border border-border">
+          <p className="eyebrow mb-2">
             Active Idea
           </p>
-          <p
-            className="font-serif italic leading-relaxed"
-            style={{ fontSize: "12px", color: "#5a574f" }}
-          >
+          <p className="font-serif italic leading-relaxed text-[12px] text-text-faint">
             No session yet. Start the War Room to begin.
           </p>
         </div>

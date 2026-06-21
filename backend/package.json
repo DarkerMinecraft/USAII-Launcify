@@ -19,7 +19,8 @@
     "express": "^5.2.1",
     "express-oauth2-jwt-bearer": "^1.9.0",
     "nodemon": "^3.1.14",
-    "pg": "^8.21.0"
+    "pg": "^8.21.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

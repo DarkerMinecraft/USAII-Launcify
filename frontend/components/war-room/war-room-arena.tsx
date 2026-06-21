@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Loader2, RotateCw, AlertTriangle, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import type {
   AgentRole,
   AssumptionNode,
@@ -44,12 +47,6 @@ const AGENT_META: Record<
 type Phase = "loading" | "debating" | "synthesizing" | "ready" | "error";
 type ErrorKind = "load" | "turn" | "synth";
 
-const eyebrow: React.CSSProperties = {
-  fontSize: "9.5px",
-  letterSpacing: "0.16em",
-  color: "#5a574f",
-  textTransform: "uppercase",
-};
 
 export const WarRoomArena = ({ id }: { id: string }) => {
   const [phase, setPhase] = useState<Phase>("loading");
@@ -233,7 +230,7 @@ export const WarRoomArena = ({ id }: { id: string }) => {
       <Stage>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 py-24">
           <Loader2 className="h-5 w-5 animate-spin" style={{ color: "#c2692a" }} />
-          <p style={{ ...eyebrow }} className="font-mono">Convening the room…</p>
+          <p className="eyebrow font-mono">Convening the room…</p>
         </div>
       </Stage>
     );
@@ -275,7 +272,7 @@ export const WarRoomArena = ({ id }: { id: string }) => {
             <div className="mx-auto w-full max-w-3xl px-8 pt-10 pb-2">
               <div className="flex items-center gap-3">
                 <RoundStepper current={stepperRound} />
-                <span className="font-mono" style={eyebrow}>
+                <span className="eyebrow font-mono">
                   Round {stepperRound} · {ROUND_NAMES[stepperRound]}
                 </span>
               </div>
@@ -287,6 +284,10 @@ export const WarRoomArena = ({ id }: { id: string }) => {
             </div>
 
             <Arena activeAgent={phase === "debating" ? activeAgent : null} />
+
+            <div className="mx-auto w-full max-w-3xl px-8 pt-2 pb-1">
+              <Progress value={Math.round((messages.length / 9) * 100)} className="h-[2px] bg-surface-3 [&>[data-slot=progress-indicator]]:bg-agent-skeptic" />
+            </div>
 
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-3.5 px-8 pb-16 pt-2">
               {messages.map((m, i) => (
@@ -342,7 +343,7 @@ const Arena = ({ activeAgent }: { activeAgent: AgentRole | null }) => {
 
   return (
     <div className="mx-auto w-full max-w-[820px] px-8">
-      <svg viewBox="0 0 1200 800" className="block w-full" role="img" aria-label="War Room debate arena">
+      <svg viewBox="0 0 1200 800" width="1200" height="800" className="block w-full" role="img" aria-label="War Room debate arena — three AI advisors positioned around a central debate floor">
         <defs>
           <radialGradient id="overhead" cx="50%" cy="34%" r="46%">
             <stop offset="0%" stopColor="rgba(237,233,224,0.06)" />
@@ -487,61 +488,60 @@ const SynthesizingCard = () => (
 
 const ReadyInterstitial = ({ assumptionCount }: { assumptionCount: number }) => (
   <div className="flex flex-1 flex-col items-center justify-center px-8 py-24 text-center">
-    <div className="font-mono" style={{ ...eyebrow, marginBottom: "18px" }}>
+    <div className="eyebrow font-mono mb-[18px]">
       The debate has concluded
     </div>
-    <h1 className="font-serif italic" style={{ fontSize: "34px", color: "#ede9e0", lineHeight: 1.12, marginBottom: "14px" }}>
+    <h1 className="font-serif italic text-[34px] text-foreground leading-[1.12] mb-[14px]">
       Your assumption map is ready.
     </h1>
-    <p style={{ fontSize: "15px", color: "#9a958c", maxWidth: "30rem", lineHeight: 1.6 }}>
+    <p className="text-[15px] text-text-muted max-w-[30rem] leading-[1.6]">
       {assumptionCount > 0
         ? `Three advisors surfaced ${assumptionCount} assumption${assumptionCount === 1 ? "" : "s"} across three rounds of debate. The Launchpad will help you act on them.`
         : "The room has finished debating your idea. The Launchpad will help you act on what surfaced."}
     </p>
-    <p style={{ fontSize: "12.5px", color: "#7a7670", maxWidth: "28rem", lineHeight: 1.55, marginTop: "20px", fontStyle: "italic" }} className="font-serif">
+    <p className="font-serif text-[12.5px] text-text-dim max-w-[28rem] leading-[1.55] mt-5 italic">
       This reflects only what you told the room — it doesn&apos;t replace talking to real customers.
     </p>
-    <button
+    <Button
       disabled
-      className="mt-9 inline-flex items-center gap-2.5 font-semibold disabled:cursor-not-allowed"
-      style={{ background: "#1a1916", color: "#7a7670", border: "1px solid #2e2c28", borderRadius: "9px", padding: "12px 22px", fontSize: "14.5px", opacity: 0.7 }}
+      variant="secondary"
+      className="mt-9 gap-2.5 rounded-[9px] px-[22px] py-3 text-[14.5px]"
     >
       <Lock className="h-3.5 w-3.5" />
       Open the Launchpad
       <ArrowRight className="h-4 w-4" />
-    </button>
-    <span className="mt-3 font-mono" style={eyebrow}>Interactive map coming next</span>
+    </Button>
+    <span className="eyebrow mt-3 font-mono">Interactive map coming next</span>
   </div>
 );
 
 const TurnError = ({ message, onRetry }: { message: string | null; onRetry: () => void }) => (
-  <div style={{ background: "rgba(194,105,42,0.08)", border: "1px solid rgba(194,105,42,0.40)", borderRadius: "13px", padding: "15px 18px" }}>
-    <div className="flex items-start gap-3">
-      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "#c2692a" }} />
-      <div className="flex-1">
-        <p style={{ fontSize: "14px", color: "#ede9e0", lineHeight: 1.5 }}>
-          {message ?? "Something interrupted the debate."}
-        </p>
-        <p style={{ fontSize: "13px", color: "#9a958c", marginTop: "4px", lineHeight: 1.5 }}>
-          The rest of the debate is preserved — retry just this step.
-        </p>
-        <div className="mt-3">
-          <RetryButton label="Retry this turn" onClick={onRetry} />
-        </div>
+  <Alert className="border-[rgba(194,105,42,0.40)] bg-[rgba(194,105,42,0.08)]">
+    <AlertTriangle className="h-4 w-4 text-agent-skeptic" />
+    <div className="flex flex-col gap-1">
+      <AlertDescription className="text-foreground text-[14px] leading-[1.5]">
+        {message ?? "Something interrupted the debate."}
+      </AlertDescription>
+      <AlertDescription className="text-text-muted text-[13px]">
+        The rest of the debate is preserved — retry just this step.
+      </AlertDescription>
+      <div className="mt-3">
+        <RetryButton label="Retry this turn" onClick={onRetry} />
       </div>
     </div>
-  </div>
+  </Alert>
 );
 
 const RetryButton = ({ label, onClick }: { label: string; onClick: () => void }) => (
-  <button
+  <Button
     onClick={onClick}
-    className="inline-flex items-center gap-2 font-semibold transition-colors"
-    style={{ background: "#1a1916", border: "1px solid #2e2c28", color: "#ede9e0", borderRadius: "8px", padding: "8px 14px", fontSize: "13px" }}
+    variant="secondary"
+    size="sm"
+    className="gap-2"
   >
     <RotateCw className="h-3.5 w-3.5" />
     {label}
-  </button>
+  </Button>
 );
 
 const truncate = (s: string, n: number) =>

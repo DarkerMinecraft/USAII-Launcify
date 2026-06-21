@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
+
+export const metadata: Metadata = {
+  title: "Launchpad",
+  description: "Turn your War Room insights into action. Generate customer outreach, an executive summary, validation roadmap, and market research tailored to your idea.",
+  robots: { index: false, follow: false },
+};
 import { Loader2 } from "lucide-react";
 import { LaunchpadClient } from "@/components/launchpad/launchpad-client";
 

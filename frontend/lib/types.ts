@@ -36,3 +36,19 @@ export type Canvas = {
   assumptions: AssumptionNode[];
   lastUpdated: string;
 };
+
+export type LaunchpadKey = "outreachDraft" | "executiveSummary" | "validationRoadmap" | "marketResearch";
+
+export type SessionData = {
+  id: string;
+  ideaSummary: string;
+  status: "IN_PROGRESS" | "COMPLETE";
+  questionnaireResponses: QA[];
+  canvas: Canvas | null;
+  outreachDraft: Record<string, unknown> | null;
+  executiveSummary: Record<string, unknown> | null;
+  validationRoadmap: Record<string, unknown> | null;
+  marketResearch: Record<string, unknown> | null;
+  transcript: (DebateMessage & { id: string; sessionId: string; createdAt: string })[];
+  assumptions: (AssumptionNode & { sessionId: string; createdAt: string })[];
+};
