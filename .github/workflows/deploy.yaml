@@ -86,6 +86,9 @@ jobs:
             echo "Installing dependencies..."
             npm install
 
+            echo "Clearing stale build cache..."
+            rm -rf .next
+
             echo "Building frontend..."
             npm run build
 
