@@ -43,7 +43,7 @@ Idea intake → Questionnaire → AI Debate (3 rounds × 3 agents) → Assumptio
 
 ---
 
-## The Three Pillars
+## The Four Pillars
 
 ### War Room
 The core feature. The founder describes their idea, answers a short questionnaire, and watches three AI advisors debate it in structured rounds:
@@ -56,14 +56,33 @@ After Round 3, a separate synthesis pass produces the **Assumption Map** — a v
 
 **Why three agents?** A single AI response produces false consensus. The multi-agent structure forces the model to reason from genuinely different frames — market skepticism, operational realism, strategic positioning — so the output reflects real tradeoff tension, not a sanitized summary.
 
-### Launchpad
-Where founders stop thinking and start doing. Agents read directly from the War Room's Assumption Map:
+**Session persistence:** War Room sessions are saved to the database and listed on the home screen with status badges (In Progress / Complete). Sessions can be deleted with a confirmation step.
 
-- **Customer Connect** — drafts personalized outreach targeting the most critical unvalidated assumption. The founder reviews and sends every message manually. The AI never contacts anyone on their behalf.
-- **Executive Summary** — synthesizes the map into a one-page brief, surfacing key risks directly from the assumption map rather than softening them.
+### Launchpad
+Where founders stop thinking and start doing. Agents read directly from the War Room's Assumption Map. Five output tabs:
+
+- **Customer Connect** — drafts personalized outreach targeting the most critical unvalidated assumption, including email subject/body, LinkedIn message, target profile rationale, and personalization tips. The founder reviews and sends every message manually. The AI never contacts anyone on their behalf.
+- **Executive Summary** — synthesizes the map into a one-page brief surfacing key risks, validated signals, and concrete next steps.
+- **Validation Roadmap** — generates a week-by-week milestone plan with the single cheapest test to run first, success/fail signals per milestone, and a risk warning.
+- **Market Research** — surfaces competitive landscape, timing signals, and differentiation hypothesis from the assumption map context, with explicit flags on things the founder must verify independently.
+- **Founder's Log** — a private scratchpad for per-output context notes and free-form session journaling, persisted to the database.
+
+### Strategy Room
+An AI advisor with full context of the founder's idea and assumption canvas. The advisor reads:
+
+- The War Room canvas (all assumption nodes with status and explanations)
+- Any documents the founder uploads (PDF, up to 20 MB)
+
+Documents are chunked, stored in S3, and indexed with pgvector embeddings for retrieval. The advisor uses the retrieved context to answer questions about the idea, market, or next move. Session picker lets founders switch between War Room sessions.
 
 ### Pitch Session
-Live AI pitch coach powered by Gemini multimodal. Analyzes delivery, pacing, filler words, and slide clarity in real time. Flags when a verbal pitch contradicts unvalidated assumptions from the War Room.
+Live AI pitch coach powered by Gemini Live multimodal. Connects via WebSocket to the Gemini Live API and analyzes the founder's pitch in real time:
+
+- Mic input with mute/unmute toggle
+- Camera feed with draggable, resizable overlay (sm / md / lg)
+- Screen share support
+- Real-time feedback log with timestamps and round tracking
+- Feedback panel toggleable alongside the live session
 
 ---
 
@@ -71,13 +90,16 @@ Live AI pitch coach powered by Gemini multimodal. Analyzes delivery, pacing, fil
 
 | Stage | Input | AI Capability | Output |
 |---|---|---|---|
-| Question generation | Founder's idea summary | LLM (Gemini 3.1 Flash-Lite) with domain-aware prompting | 3 tailored questions specific to the idea's risks |
+| Question generation | Founder's idea summary | LLM (Gemini Flash) with domain-aware prompting | 3 tailored questions specific to the idea's risks |
 | Debate — Round 1 | Questionnaire responses | 3 parallel LLM calls with distinct system prompts (Skeptic / Strategist / Operator) | 3 independent opening statements |
 | Debate — Round 2 | Full Round 1 transcript | LLM with full context | 3 cross-agent rebuttals |
 | Debate — Round 3 | Rounds 1–2 transcript | LLM with full context | 3 closing statements naming critical unknowns |
 | Assumption synthesis | Full 9-turn transcript | LLM at low temperature (structured extraction) | Structured JSON: claim, status, explanation, agentSource, howToTest |
-| Launchpad — Outreach | Assumption Map canvas | LLM with canvas context | Personalized cold outreach targeting the riskiest unvalidated assumption |
-| Launchpad — Summary | Assumption Map canvas | LLM with canvas context | One-page executive brief with risks surfaced from the map |
+| Launchpad — Customer Connect | Assumption Map canvas + user context | LLM with canvas context | Email, LinkedIn message, target profile, personalization tips |
+| Launchpad — Executive Summary | Assumption Map canvas + user context | LLM with canvas context | One-page brief with risks, validated signals, next steps |
+| Launchpad — Validation Roadmap | Assumption Map canvas + user context | LLM with canvas context | Week-by-week milestones with cheapest test and risk warning |
+| Launchpad — Market Research | Assumption Map canvas + user context | LLM with canvas context | Competitor landscape, timing signals, differentiation hypothesis |
+| Strategy Room | Canvas + uploaded docs (pgvector retrieval) | LLM with RAG context | Answers about idea, market, and next moves |
 | Pitch Session | Live audio + camera + screen | Gemini Live multimodal | Real-time coaching feedback on delivery and content |
 
 **Why an LLM and not a rules engine?**
@@ -96,11 +118,13 @@ The War Room produces structured, authoritative-looking output. Founders may mis
 - UNVALIDATED and NEEDS_INFO nodes are visually louder than VALIDATED nodes on the map — larger, higher-contrast, foregrounded. The map never reads as a "your idea is validated" trophy.
 - Every node's side panel states: *"This status was AI-inferred from only what you told us. Verify before trusting it."*
 - A persistent disclaimer banner on the results screen: *"This analysis is based entirely on what you've told us. It does not replace talking to real customers."*
+- Market Research output explicitly flags every unverified claim for the founder to confirm independently.
 
-**Human-in-the-Loop (two explicit control points):**
+**Human-in-the-Loop (explicit control points):**
 
 1. **Assumption Map remediation** — the AI surfaces nodes; the founder decides what to do with each one. Validate, modify, or remove — every status change requires the founder to act. The AI never auto-resolves a node.
 2. **Customer outreach** — the AI drafts messages; the founder reviews and sends every one manually. The system has no send capability by design.
+3. **Document context** — the Strategy Room advisor only retrieves documents the founder explicitly uploaded to their own session.
 
 The founder is never told whether their idea is worth pursuing. The AI presents evidence. The founder decides.
 
@@ -110,17 +134,21 @@ The founder is never told whether their idea is worth pursuing. The AI presents 
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 16 (App Router) + React 19 + TypeScript |
+| Frontend | Next.js 15 (App Router) + React 19 + TypeScript |
 | Styling | Tailwind CSS 4 + shadcn/ui |
-| Node graph | React Flow (Assumption Map) |
+| Node graph | React Flow / @xyflow/react (Assumption Map) |
 | Animation | Framer Motion |
-| Primary AI | Gemini 3.1 Flash-Lite (Google AI Studio) |
+| 3D background | Three.js |
+| Primary AI | Gemini Flash (Google AI Studio) |
 | Fallback AI | Groq Qwen3-32B |
-| Live AI (Pitch Session) | Gemini Live multimodal |
+| Live AI (Pitch Session) | Gemini Live multimodal (WebSocket) |
 | Backend | Express 5 + TypeScript |
-| Database | PostgreSQL via Prisma 7 (Neon) |
-| Auth | Auth0 v4 (`@auth0/nextjs-auth0`) |
-| Deployment | EC2 · PM2 · GitHub Actions (smart deploy) |
+| Database | PostgreSQL via Prisma 6 (Neon) + pgvector |
+| Document storage | AWS S3 |
+| Auth | Auth0 v4 (`@auth0/nextjs-auth0`) + JWT bearer middleware |
+| Validation | Zod |
+| Deployment | EC2 · PM2 · nginx (brotli, caching, security headers) · GitHub Actions |
+| PWA / SEO | Web manifest, sitemap, robots.txt, OG image, apple-icon, favicon |
 
 ---
 
@@ -128,24 +156,64 @@ The founder is never told whether their idea is worth pursuing. The AI presents 
 
 ```
 launchify/
-├── frontend/               # Next.js 16 App Router
+├── frontend/               # Next.js 15 App Router
 │   ├── app/                # Pages and layouts
+│   │   ├── page.tsx                      # Home: session list + pillars grid
+│   │   ├── war-room/                     # War Room flow
+│   │   │   ├── page.tsx                  # New session intake
+│   │   │   └── session/[id]/page.tsx     # Active session (debate + map)
+│   │   ├── launchpad/page.tsx            # Launchpad (5 output tabs)
+│   │   ├── strategy-room/page.tsx        # Strategy Room advisor
+│   │   ├── pitch-session/page.tsx        # Gemini Live pitch coach
+│   │   ├── icon/route.tsx                # Favicon generation (Satori)
+│   │   ├── opengraph-image.tsx           # OG image generation (Satori)
+│   │   ├── apple-icon.tsx                # Apple touch icon
+│   │   ├── manifest.ts                   # PWA manifest
+│   │   ├── sitemap.ts                    # Dynamic sitemap
+│   │   └── robots.ts                     # robots.txt
 │   ├── actions/            # Server Actions (replaces API routes)
-│   │   ├── sessions.ts     # Session CRUD
+│   │   ├── sessions.ts     # Session CRUD + launchpad result persistence
 │   │   ├── war-room.ts     # Debate + assumption generation
-│   │   ├── launchpad.ts    # Outreach + summary generation
-│   │   └── gemini.ts       # Live API token
+│   │   ├── launchpad.ts    # Outreach, summary, roadmap, market research
+│   │   ├── advisor.ts      # Strategy Room chat + document upload
+│   │   ├── profile.ts      # User profile update + password reset
+│   │   └── gemini.ts       # Gemini Live API token
 │   ├── components/
 │   │   ├── war-room/       # Questionnaire, Arena, Assumption Map
-│   │   ├── launchpad/      # Launchpad client
-│   │   ├── pitch-session/  # Live pitch session UI
-│   │   └── home/           # Session list
-│   ├── lib/                # LLM provider layer, Auth0, backend proxy
-│   └── prompts/            # All system prompts as named constants
+│   │   ├── launchpad/      # Launchpad 5-tab client
+│   │   ├── strategy-room/  # Advisor chat, document panel, session picker
+│   │   ├── pitch-session/  # Live session UI with camera/screen overlay
+│   │   ├── home/           # Session list with status + delete
+│   │   ├── landing/        # Marketing landing page (unauthenticated)
+│   │   ├── sidebar.tsx     # Nav sidebar with user settings
+│   │   ├── mobile-nav.tsx  # Bottom nav for mobile
+│   │   └── user-settings-dialog.tsx  # Profile + security settings modal
+│   ├── lib/                # LLM provider layer, Auth0, backend proxy, types
+│   └── prompts/            # All system prompts + user context injection
 └── backend/                # Express 5 + Prisma
-    ├── src/v1/sessions/    # Session CRUD + canvas persistence
-    └── prisma/             # Schema with cascade deletes
+    ├── src/v1/
+    │   ├── sessions/       # Session CRUD + canvas + launchpad persistence
+    │   ├── advisor/        # Chat history + S3 document upload + PDF chunking
+    │   ├── users/          # User profile endpoint (/v1/users/me)
+    │   └── auth/           # Auth0 account sync (upsert on login)
+    └── prisma/             # Schema with cascade deletes + pgvector index
 ```
+
+---
+
+## Database Schema
+
+```
+User                  — Auth0-linked account (email, name, picture, provider)
+WarRoomSession        — Core session (idea, questionnaire, canvas, launchpad outputs)
+DebateMessage         — 9-turn debate transcript (agent × round)
+AssumptionNode        — Extracted claims with status, explanation, howToTest
+AdvisorMessage        — Strategy Room chat history (USER / ASSISTANT)
+SessionDocument       — Uploaded PDFs (S3 key, filename)
+DocumentChunk         — Chunked PDF text with pgvector embeddings for RAG
+```
+
+All child records cascade-delete when a session is deleted.
 
 ---
 
@@ -165,7 +233,17 @@ The Assumption Map is the living document that powers the entire application. Af
 }
 ```
 
-When the founder validates a node, the map updates in real time. The Launchpad reads the current map state before every generation — so outreach and summaries are always calibrated to what's actually been validated, not the original pitch.
+When the founder validates a node, the map updates in real time. The Launchpad reads the current map state before every generation — so outreach and summaries are always calibrated to what's actually been validated, not the original pitch. The canvas persists to the database automatically after every change.
+
+---
+
+## Auth & User Accounts
+
+- Auth0 v4 with support for Email/Password, Google OAuth2, and GitHub OAuth
+- Account sync endpoint upserts user records on every login
+- User Settings dialog with Profile tab (display name) and Security tab (password reset email for `auth0|` accounts)
+- Auth provider detection — social login accounts show their provider and cannot trigger a password reset
+- JWT bearer middleware on all backend routes validates Auth0 tokens
 
 ---
 
