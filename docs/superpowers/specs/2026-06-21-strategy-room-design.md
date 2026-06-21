@@ -12,6 +12,7 @@ Strategy Room is a per-session AI advisor chat added as a fourth sidebar pillar 
 - One chat thread per War Room session (not a global chat or multi-chat list)
 - Memory = full chat history sent with every message (no separate extraction step)
 - File uploads use pgvector RAG: PDF text extracted, chunked, embedded, searched at query time
+- Raw files stored in AWS S3 bucket `usaii-launchify`; only metadata + text chunks stored in Postgres
 - Sidebar entry: "Strategy Room" with `BrainCircuit` icon
 
 ---
@@ -36,10 +37,14 @@ Strategy Room is a per-session AI advisor chat added as a fourth sidebar pillar 
 ### Document Upload Flow
 1. User uploads PDF or text file via drag-and-drop or file picker
 2. `POST /v1/sessions/:id/advisor/documents` (Express, multipart via multer)
-3. Extract text: `pdf-parse` for PDFs, direct read for `.txt`/`.md`
-4. Chunk into ~500-token segments with 50-token overlap
-5. For each chunk: Gemini `text-embedding-004` → `DocumentChunk` row with `embedding vector(768)`
-6. Return `{ documentId, chunkCount, filename }`
+3. Upload raw file buffer to S3 bucket `usaii-launchify` under key `sessions/{sessionId}/docs/{documentId}/{filename}`
+4. Extract text from buffer: `pdf-parse` for PDFs, direct read for `.txt`/`.md`
+5. Chunk into ~500-token segments with 50-token overlap
+6. For each chunk: Gemini `text-embedding-004` → `DocumentChunk` row with `embedding vector(768)`
+7. Store `SessionDocument` row with `s3Key` pointing to the uploaded S3 object
+8. Return `{ documentId, chunkCount, filename, s3Key }`
+
+**Document deletion:** `DELETE` removes the S3 object first (`DeleteObjectCommand`), then deletes the `SessionDocument` row (chunks cascade).
 
 ---
 
@@ -67,6 +72,7 @@ model SessionDocument {
   sessionId  String
   session    WarRoomSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   filename   String
+  s3Key      String          // e.g. "sessions/{sessionId}/docs/{id}/{filename}"
   uploadedAt DateTime        @default(now())
   chunks     DocumentChunk[]
 }
@@ -101,8 +107,8 @@ All routes mounted under `checkJwt` middleware.
 |--------|------|-------------|
 | `GET` | `/v1/sessions/:id/advisor` | Returns `{ messages: AdvisorMessage[], documents: { id, filename, uploadedAt, chunkCount }[] }` for initial page load |
 | `POST` | `/v1/sessions/:id/advisor/messages` | Bulk-save `[{ role, content }]` array (user + assistant pair per turn) |
-| `POST` | `/v1/sessions/:id/advisor/documents` | Multipart upload; extract text, chunk, embed, store chunks. Returns `{ documentId, chunkCount, filename }` |
-| `DELETE` | `/v1/sessions/:id/advisor/documents/:docId` | Delete document + its chunks (cascade) |
+| `POST` | `/v1/sessions/:id/advisor/documents` | Multipart upload; upload to S3 `usaii-launchify`, extract text, chunk, embed, store chunks + metadata. Returns `{ documentId, chunkCount, filename }` |
+| `DELETE` | `/v1/sessions/:id/advisor/documents/:docId` | Delete S3 object, then delete `SessionDocument` row (chunks cascade) |
 
 All routes verify session ownership via `requireUser` before touching data.
 
@@ -226,6 +232,13 @@ Represent uncertainty honestly. Surface what you don't know.
 **Backend:**
 - `multer` — multipart file upload handling
 - `pdf-parse` — PDF text extraction
+- `@aws-sdk/client-s3` — S3 upload + delete via `PutObjectCommand` / `DeleteObjectCommand`
+
+**Environment variables required (backend):**
+- `AWS_REGION` — e.g. `us-east-1`
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `S3_BUCKET=usaii-launchify`
 
 **Frontend (already available):**
 - `@google/genai` — Gemini embeddings via `embedContent`
