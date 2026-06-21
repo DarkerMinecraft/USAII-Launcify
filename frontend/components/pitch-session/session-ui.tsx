@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Mic, MicOff, Video, VideoOff, Monitor, MonitorOff,
   PhoneOff, Loader2, MessageSquare, Maximize2, X,
+  ShieldCheck, MicIcon, VideoIcon, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GeminiLiveClient, type SessionState } from '@/lib/gemini-live-client';
@@ -26,6 +27,8 @@ interface FeedbackEntry {
   round: number;
 }
 
+type PermissionPhase = 'checking' | 'prompt' | 'requesting' | 'granted' | 'denied-mic' | 'no-device' | 'unsupported';
+
 const formatTimestamp = (ms: number) =>
   new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -36,6 +39,8 @@ export const SessionUi = () => {
   const [isScreenShared, setIsScreenShared] = useState(false);
   const [needsStart, setNeedsStart]     = useState(true);
   const [error, setError]               = useState<string | null>(null);
+  const [permissionPhase, setPermissionPhase] = useState<PermissionPhase>('checking');
+  const [cameraGranted, setCameraGranted] = useState(false);
 
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
@@ -75,13 +80,47 @@ export const SessionUi = () => {
     return () => track.removeEventListener('ended', handleEnded);
   }, [screenStream]);
 
-  const initCamPos = (size: CamSize = camSize) => {
-    if (camPos) return;
-    const { w, h } = CAM_SIZES[size];
-    setCamPos({ x: window.innerWidth - w - 16, y: window.innerHeight - h - 80 });
-  };
-
+  // Check permission state on mount
   useEffect(() => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setPermissionPhase('unsupported');
+      return;
+    }
+
+    if (!navigator.permissions?.query) {
+      // Permissions API not available — go straight to prompt
+      setPermissionPhase('prompt');
+      return;
+    }
+
+    navigator.permissions.query({ name: 'microphone' as PermissionName }).then((result) => {
+      if (result.state === 'granted') {
+        setPermissionPhase('granted');
+        // Also check camera
+        navigator.permissions.query({ name: 'camera' as PermissionName }).then((camResult) => {
+          setCameraGranted(camResult.state === 'granted');
+        }).catch(() => {});
+      } else if (result.state === 'denied') {
+        setPermissionPhase('denied-mic');
+      } else {
+        // 'prompt' — hasn't been asked yet
+        setPermissionPhase('prompt');
+      }
+
+      // Watch for permission changes
+      result.onchange = () => {
+        if (result.state === 'granted') setPermissionPhase('granted');
+        else if (result.state === 'denied') setPermissionPhase('denied-mic');
+      };
+    }).catch(() => {
+      setPermissionPhase('prompt');
+    });
+  }, []);
+
+  // Connect to Gemini once permissions are settled (not denied/unsupported)
+  useEffect(() => {
+    if (permissionPhase === 'checking' || permissionPhase === 'denied-mic' || permissionPhase === 'unsupported') return;
+
     let cancelled = false;
 
     if (_activeClient) {
@@ -138,13 +177,19 @@ export const SessionUi = () => {
       }
       liveClientRef.current = null;
     };
-  }, []);
+  }, [permissionPhase]);
 
   useEffect(() => {
     const handleUnload = () => { _activeClient?.disconnect(); };
     window.addEventListener('beforeunload', handleUnload);
     return () => window.removeEventListener('beforeunload', handleUnload);
   }, []);
+
+  const initCamPos = (size: CamSize = camSize) => {
+    if (camPos) return;
+    const { w, h } = CAM_SIZES[size];
+    setCamPos({ x: window.innerWidth - w - 16, y: window.innerHeight - h - 80 });
+  };
 
   const handleCamMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0 || !camPos) return;
@@ -186,21 +231,77 @@ export const SessionUi = () => {
     });
   };
 
+  // Request mic + camera permissions, called from the "Grant Access" button
+  const handleGrantPermissions = async () => {
+    setPermissionPhase('requesting');
+    try {
+      // Request mic (required) + camera (optional) together so the browser shows one combined prompt
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      stream.getTracks().forEach(t => t.stop());
+      setCameraGranted(true);
+      setPermissionPhase('granted');
+    } catch (err) {
+      if (err instanceof DOMException) {
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          // Camera may have been denied but mic could still be ok — try mic alone
+          try {
+            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            micStream.getTracks().forEach(t => t.stop());
+            setCameraGranted(false);
+            setPermissionPhase('granted');
+          } catch (micErr) {
+            if (micErr instanceof DOMException && (micErr.name === 'NotAllowedError' || micErr.name === 'PermissionDeniedError')) {
+              setPermissionPhase('denied-mic');
+            } else if (micErr instanceof DOMException && micErr.name === 'NotFoundError') {
+              setPermissionPhase('no-device');
+            } else {
+              setPermissionPhase('prompt');
+              setError('Could not access your microphone. Please try again.');
+            }
+          }
+        } else if (err.name === 'NotFoundError') {
+          setPermissionPhase('no-device');
+        } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+          setPermissionPhase('prompt');
+          setError('Your microphone is in use by another application. Close it and try again.');
+        } else {
+          setPermissionPhase('prompt');
+          setError(`Could not access media devices: ${err.message}`);
+        }
+      } else {
+        setPermissionPhase('prompt');
+      }
+    }
+  };
+
   const handleStart = async () => {
     const client = liveClientRef.current;
     if (!client) return;
     try {
       await client.startAudioCapture();
-      try {
-        const stream = await client.startCameraShare('user');
-        setCameraStream(stream);
-        setIsCameraOn(true);
-        initCamPos();
-      } catch { console.warn('Camera not available, continuing without it'); }
+      if (cameraGranted) {
+        try {
+          const stream = await client.startCameraShare('user');
+          setCameraStream(stream);
+          setIsCameraOn(true);
+          initCamPos();
+        } catch { /* camera optional */ }
+      }
       setNeedsStart(false);
     } catch (err) {
-      console.error('Failed to start session:', err);
-      setError('Could not access microphone. Please allow microphone permission and try again.');
+      if (err instanceof DOMException) {
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setPermissionPhase('denied-mic');
+        } else if (err.name === 'NotFoundError') {
+          setPermissionPhase('no-device');
+        } else if (err.name === 'NotReadableError') {
+          setError('Your microphone is being used by another app. Close it and reload.');
+        } else {
+          setError(`Microphone error: ${err.message}`);
+        }
+      } else {
+        setError('Could not start the session. Please reload and try again.');
+      }
     }
   };
 
@@ -253,7 +354,7 @@ export const SessionUi = () => {
 
   const handleEnd = () => {
     liveClientRef.current?.disconnect();
-    window.location.href = '/';
+    window.location.href = '/dashboard';
   };
 
   const statusConfig: Record<SessionState, { color: string; label: string }> = {
@@ -266,16 +367,68 @@ export const SessionUi = () => {
   };
   const { color: statusColor, label: statusLabel } = statusConfig[sessionState];
 
-  if (error) {
+  // ── Full-screen overlay states ──────────────────────────────────────────────
+
+  if (permissionPhase === 'unsupported') {
     return (
-      <div className="h-dvh flex flex-col items-center justify-center bg-zinc-950 text-white gap-4 px-6">
-        <p className="text-red-400 text-center max-w-sm">{error}</p>
+      <div className="h-dvh flex flex-col items-center justify-center bg-zinc-950 text-white gap-4 px-6 text-center">
+        <AlertTriangle className="w-8 h-8 text-yellow-400 mx-auto" />
+        <p className="text-white/80 max-w-sm">
+          Your browser doesn&apos;t support microphone access. Please use Chrome, Edge, or Safari and make sure you&apos;re on a secure (HTTPS) connection.
+        </p>
+      </div>
+    );
+  }
+
+  if (permissionPhase === 'denied-mic') {
+    return (
+      <div className="h-dvh flex flex-col items-center justify-center bg-zinc-950 text-white gap-5 px-6 text-center">
+        <div className="w-14 h-14 rounded-full bg-red-500/20 border border-red-400/40 flex items-center justify-center">
+          <MicOff className="w-6 h-6 text-red-400" />
+        </div>
+        <div className="space-y-2">
+          <p className="font-semibold text-lg">Microphone access blocked</p>
+          <p className="text-white/50 text-sm max-w-xs">
+            Click the lock icon in your browser&apos;s address bar, set <strong>Microphone</strong> to <strong>Allow</strong>, then reload the page.
+          </p>
+        </div>
+        <Button onClick={() => window.location.reload()} variant="outline" className="bg-zinc-800 border-white/30 text-white hover:bg-zinc-700">
+          Reload after allowing
+        </Button>
+      </div>
+    );
+  }
+
+  if (permissionPhase === 'no-device') {
+    return (
+      <div className="h-dvh flex flex-col items-center justify-center bg-zinc-950 text-white gap-5 px-6 text-center">
+        <AlertTriangle className="w-8 h-8 text-yellow-400 mx-auto" />
+        <div className="space-y-2">
+          <p className="font-semibold text-lg">No microphone found</p>
+          <p className="text-white/50 text-sm max-w-xs">
+            Connect a microphone or headset, then reload.
+          </p>
+        </div>
         <Button onClick={() => window.location.reload()} variant="outline" className="bg-zinc-800 border-white/30 text-white hover:bg-zinc-700">
           Reload
         </Button>
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <div className="h-dvh flex flex-col items-center justify-center bg-zinc-950 text-white gap-4 px-6 text-center">
+        <AlertTriangle className="w-7 h-7 text-red-400 mx-auto" />
+        <p className="text-red-400 max-w-sm">{error}</p>
+        <Button onClick={() => window.location.reload()} variant="outline" className="bg-zinc-800 border-white/30 text-white hover:bg-zinc-700">
+          Reload
+        </Button>
+      </div>
+    );
+  }
+
+  // ── Main session UI ─────────────────────────────────────────────────────────
 
   const { w: camW, h: camH } = CAM_SIZES[camSize];
 
@@ -310,17 +463,71 @@ export const SessionUi = () => {
           </div>
         )}
 
-        {needsStart && (sessionState === 'connected' || sessionState === 'listening') && (
+        {/* Permissions prompt overlay */}
+        {permissionPhase === 'prompt' && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950/90 backdrop-blur-sm gap-6 px-6">
+            <div className="w-14 h-14 rounded-full bg-white/5 border border-white/20 flex items-center justify-center">
+              <ShieldCheck className="w-6 h-6 text-white/70" />
+            </div>
+            <div className="text-center space-y-2 max-w-xs">
+              <h2 className="text-xl font-semibold">Allow access</h2>
+              <p className="text-white/50 text-sm">
+                Pitch Session needs your microphone to listen and optionally your camera for delivery coaching.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 w-full max-w-[220px]">
+              <div className="flex items-center gap-3 text-sm text-white/60">
+                <MicIcon className="w-4 h-4 shrink-0 text-white/40" />
+                <span>Microphone <span className="text-white/30">(required)</span></span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-white/60">
+                <VideoIcon className="w-4 h-4 shrink-0 text-white/40" />
+                <span>Camera <span className="text-white/30">(optional)</span></span>
+              </div>
+            </div>
+            <Button
+              onClick={handleGrantPermissions}
+              size="lg"
+              className="bg-white text-zinc-950 hover:bg-white/90 font-semibold px-8 py-3 h-auto rounded-full"
+            >
+              Grant Access
+            </Button>
+          </div>
+        )}
+
+        {/* Requesting overlay */}
+        {permissionPhase === 'requesting' && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950/90 backdrop-blur-sm gap-4">
+            <Loader2 className="w-6 h-6 animate-spin text-white/40" />
+            <p className="text-white/50 text-sm">Waiting for permission…</p>
+          </div>
+        )}
+
+        {/* Start overlay */}
+        {permissionPhase === 'granted' && needsStart && (sessionState === 'connected' || sessionState === 'listening') && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950/80 backdrop-blur-sm gap-6">
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-semibold">Ready to practice?</h2>
               <p className="text-white/50 text-sm max-w-xs">
-                Your mic and camera will turn on. The AI coach will listen, watch your delivery, and give feedback.
+                Your mic {cameraGranted ? 'and camera ' : ''}will turn on. The AI coach will listen{cameraGranted ? ', watch your delivery,' : ''} and give feedback.
               </p>
+              {!cameraGranted && (
+                <p className="text-white/30 text-xs max-w-xs mt-1">
+                  Camera access not granted — delivery coaching will be audio-only.
+                </p>
+              )}
             </div>
             <Button onClick={handleStart} size="lg" className="bg-white text-zinc-950 hover:bg-white/90 font-semibold px-8 py-3 h-auto rounded-full">
               Start Your Pitch
             </Button>
+          </div>
+        )}
+
+        {/* Waiting for connection */}
+        {permissionPhase === 'granted' && needsStart && sessionState === 'connecting' && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950/80 backdrop-blur-sm gap-4">
+            <Loader2 className="w-6 h-6 animate-spin text-white/40" />
+            <p className="text-white/50 text-sm">Connecting to AI coach…</p>
           </div>
         )}
 
@@ -391,8 +598,8 @@ export const SessionUi = () => {
             >
               <Maximize2 className="w-3 h-3" />
             </Button>
-            <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] text-white/60 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-              drag to move · click <Maximize2 className="w-2.5 h-2.5 inline" /> to resize
+            <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] text-white/60 font-medium opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              drag to move
             </div>
           </div>
         </div>
