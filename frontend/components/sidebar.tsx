@@ -48,7 +48,7 @@ export const Sidebar = () => {
             className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-serif font-bold text-base bg-primary text-primary-foreground"
             style={{ boxShadow: "0 4px 12px -4px rgba(0,0,0,0.5)" }}
           >
-            F
+            L
           </div>
           <div className="flex flex-col gap-0.5">
             <span className="font-serif font-semibold leading-none text-foreground text-[15px]">
