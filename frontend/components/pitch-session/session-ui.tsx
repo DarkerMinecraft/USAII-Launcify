@@ -153,25 +153,23 @@ export const SessionUi = () => {
         return;
       }
 
-      // Check existing permission state before prompting so Chrome doesn't silently deny
-      try {
-        const perm = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-        if (perm.state === 'denied') {
-          setMicError(
-            'Microphone was previously blocked. Click the lock icon in your address bar → Site settings → Reset permissions, then reload.'
-          );
-          return;
-        }
-      } catch { /* permissions API unavailable in some browsers — proceed anyway */ }
-
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach(t => t.stop());
       setPermPhase('ready');
     } catch (err) {
       console.error(err);
       if (err instanceof DOMException && err.name === 'NotAllowedError') {
+        // Check if permission is hard-blocked vs. just dismissed to give a better message
+        let blocked = false;
+        try {
+          const perm = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+          blocked = perm.state === 'denied';
+        } catch { /* permissions API unavailable */ }
+
         setMicError(
-          'Microphone access was denied. Click the lock icon in your address bar → Site settings → Reset permissions, then reload.'
+          blocked
+            ? 'Microphone is blocked in your browser settings. Click the lock icon → Site settings → Microphone → Allow, then reload the page.'
+            : 'Microphone access was denied. Please allow microphone access when the browser prompts you.'
         );
       } else if (err instanceof DOMException && err.name === 'NotFoundError') {
         setMicError('No microphone found. Connect a mic or headset and try again.');
