@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, type KeyboardEvent } from "react";
-import { ArrowUp } from "lucide-react";
+import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +62,7 @@ export const MessageInput = ({
           disabled={disabled || !value.trim()}
           className="shrink-0 rounded-[7px]"
         >
-          <ArrowUp className="w-3.5 h-3.5" />
+          <Send className="w-3.5 h-3.5" />
         </Button>
       </div>
       <p className="eyebrow-sm text-text-faint mt-1.5 px-1">
