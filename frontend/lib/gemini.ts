@@ -62,6 +62,50 @@ export const callGemini = async (
   return text;
 }
 
+export interface ChatMessage {
+  role: "user" | "model";
+  text: string;
+}
+
+export const callGeminiChat = async (
+  systemPrompt: string,
+  history: ChatMessage[],
+  currentMessage: string,
+): Promise<string> => {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new GeminiError("GEMINI_API_KEY is not set");
+  }
+
+  const contents = [
+    ...history.map((m) => ({
+      role: m.role,
+      parts: [{ text: m.text }],
+    })),
+    { role: "user" as const, parts: [{ text: currentMessage }] },
+  ];
+
+  let text: string | undefined;
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents,
+      config: { systemInstruction: systemPrompt, temperature: 0.7 },
+    });
+    text = response.text;
+  } catch (err) {
+    throw new GeminiError(
+      `Gemini chat request failed: ${err instanceof Error ? err.message : String(err)}`,
+      err,
+    );
+  }
+
+  if (!text || !text.trim()) {
+    throw new GeminiError("Gemini returned an empty chat response");
+  }
+
+  return text;
+};
+
 /** Strips markdown code fences a model may wrap JSON in, then parses. Throws a
  *  clear GeminiParseError (with the raw text) instead of a bare SyntaxError. */
 export const parseJSON = <T>(text: string): T => {
