@@ -1,16 +1,15 @@
 import type { ReactElement } from "react";
 import type { FontResult } from "@/lib/og-fonts";
 
-/**
- * Returns the JSX element used by ImageResponse for every icon size.
- */
 export const logoMark = (
   size: number,
   radius: number,
   fontSize: number,
   font: FontResult,
+  canvasWidth?: number,
+  canvasHeight?: number,
 ): ReactElement => {
-  return {
+  const logoDiv = {
     type: "div",
     props: {
       style: {
@@ -22,6 +21,7 @@ export const logoMark = (
         alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
+        flexShrink: 0,
       },
       children: {
         type: "span",
@@ -42,6 +42,24 @@ export const logoMark = (
           children: "L",
         },
       },
+    },
+  };
+
+  if (!canvasWidth || !canvasHeight || (canvasWidth === size && canvasHeight === size)) {
+    return logoDiv as unknown as ReactElement;
+  }
+
+  return {
+    type: "div",
+    props: {
+      style: {
+        width: canvasWidth,
+        height: canvasHeight,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      },
+      children: logoDiv,
     },
   } as unknown as ReactElement;
 };

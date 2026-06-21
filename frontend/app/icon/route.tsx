@@ -18,7 +18,7 @@ export const GET = async (req: NextRequest) => {
   const fontSize = Math.round(size * 0.625);
   const font = await spectralBold();
 
-  return new ImageResponse(logoMark(size, radius, fontSize, font), {
+  return new ImageResponse(logoMark(size, radius, fontSize, font, w, h), {
     width: w,
     height: h,
     fonts: [{ name: font.name, data: font.data, weight: 700, style: "normal" }],
