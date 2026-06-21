@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 const ALLOWED = new Set([192, 512]);
 
-export async function GET(req: NextRequest) {
+export const GET = async (req: NextRequest) => {
   const raw = new URL(req.url).searchParams.get("size");
   const size = Number(raw);
 
@@ -24,4 +24,4 @@ export async function GET(req: NextRequest) {
     height: size,
     fonts: [{ name: font.name, data: font.data, weight: 700, style: "normal" }],
   });
-}
+};

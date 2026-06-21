@@ -4,12 +4,12 @@ import type { FontResult } from "@/lib/og-fonts";
 /**
  * Returns the JSX element used by ImageResponse for every icon size.
  */
-export function logoMark(
+export const logoMark = (
   size: number,
   radius: number,
   fontSize: number,
   font: FontResult,
-): ReactElement {
+): ReactElement => {
   return {
     type: "div",
     props: {
@@ -31,4 +31,4 @@ export function logoMark(
       children: "L",
     },
   } as unknown as ReactElement;
-}
+};

@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default async function OgImage() {
+const OgImage = async () => {
   const font = await spectralBold();
 
   return new ImageResponse(
@@ -94,4 +94,6 @@ export default async function OgImage() {
       fonts: [{ name: "Spectral", data: font.data, weight: 700, style: "normal" }],
     },
   );
-}
+};
+
+export default OgImage;

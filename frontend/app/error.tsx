@@ -4,13 +4,13 @@ import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function Error({
+const ErrorPage = ({
   error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
-}) {
+}) => {
   useEffect(() => {
     console.error("[app error boundary]", error);
   }, [error]);
@@ -25,4 +25,6 @@ export default function Error({
       <Button onClick={reset} className="mt-2">Try again</Button>
     </div>
   );
-}
+};
+
+export default ErrorPage;
