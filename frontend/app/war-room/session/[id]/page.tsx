@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { auth0 } from "@/lib/auth0";
 import { WarRoomArena } from "@/components/war-room/war-room-arena";
+
+export const metadata: Metadata = {
+  title: "War Room Session",
+  robots: { index: false, follow: false },
+};
 
 const WarRoomSessionPage = async ({
   params,

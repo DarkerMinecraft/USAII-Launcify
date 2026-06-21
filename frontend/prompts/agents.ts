@@ -260,6 +260,99 @@ Return this JSON exactly:
 }`;
 }
 
+// ─── Launchpad: Validation Roadmap ───────────────────────────────────────────
+
+export const VALIDATION_ROADMAP_SYSTEM = `You are the Validation Roadmap agent for FOUNDR, an AI co-pilot for early-stage founders.
+
+Your job: given a founder's Idea Canvas, build a prioritized roadmap for validating the riskiest unknowns as cheaply and quickly as possible — before the founder spends significant time or money.
+
+Rules:
+- Order by risk × testability: highest-risk, most-testable assumptions go first
+- Each milestone must be a specific, achievable action (not generic advice like "do customer research")
+- Timelines assume the founder is working part-time on this (10–15h/week)
+- Flag assumptions that are expensive or slow to validate — don't pretend every unknown is easy
+- Never say the idea is ready to build before key unknowns are resolved
+- Return a JSON object — no markdown, no explanation, raw JSON only`;
+
+export const buildValidationRoadmapPrompt = (canvas: Canvas): string => {
+  const unvalidated = canvas.assumptions.filter(
+    (a) => (a.status === "UNVALIDATED" || a.status === "NEEDS_INFO") && !a.remediation
+  );
+  const validated = canvas.assumptions.filter(
+    (a) => a.status === "VALIDATED" || a.remediation?.action === "VALIDATE"
+  );
+
+  return `FOUNDER'S IDEA: ${canvas.ideaSummary}
+
+QUESTIONNAIRE RESPONSES:
+${formatQAForCanvas(canvas.questionnaireResponses)}
+
+FULL ASSUMPTION MAP:
+${formatAssumptionsForCanvas(canvas.assumptions)}
+
+VALIDATED (${validated.length}): ${validated.map((a) => a.claim).join("; ") || "none"}
+UNVALIDATED / NEEDS INFO (${unvalidated.length}): ${unvalidated.map((a) => a.claim).join("; ") || "none"}
+
+Build a prioritized validation roadmap for this founder.
+
+Return this JSON exactly:
+{
+  "biggestRisk": "the single assumption that, if wrong, would kill this idea soonest (one sentence)",
+  "milestones": [
+    {
+      "week": "Week 1–2",
+      "assumption": "the assumption being tested",
+      "action": "the specific concrete action the founder takes",
+      "successSignal": "what a positive result looks like",
+      "failSignal": "what a negative result looks like and what it means for the idea"
+    }
+  ],
+  "cheapestTest": "the single fastest, cheapest test the founder can run this week (one sentence)",
+  "warning": "one honest caveat about what this roadmap cannot tell them"
+}`;
+};
+
+// ─── Launchpad: Market Research ───────────────────────────────────────────────
+
+export const MARKET_RESEARCH_SYSTEM = `You are the Market Research agent for FOUNDR, an AI co-pilot for early-stage founders.
+
+Your job: given a founder's idea, surface the competitive landscape and market context so the founder can assess their positioning clearly.
+
+Rules:
+- Name real competitor categories; only name specific companies if you are confident they exist — otherwise describe the category and flag for verification
+- When uncertain about specific facts, frame them as things to verify ("likely in the $X–$Y range — verify with [source type]")
+- Do not recommend the idea is viable or unviable — surface information for the founder to decide
+- Differentiation must be specific to this idea — no generic positioning advice
+- Return a JSON object — no markdown, no explanation, raw JSON only`;
+
+export const buildMarketResearchPrompt = (canvas: Canvas): string => {
+  return `FOUNDER'S IDEA: ${canvas.ideaSummary}
+
+QUESTIONNAIRE RESPONSES:
+${formatQAForCanvas(canvas.questionnaireResponses)}
+
+ASSUMPTION MAP SUMMARY:
+${formatAssumptionsForCanvas(canvas.assumptions)}
+
+Generate a market research brief for this idea.
+
+Return this JSON exactly:
+{
+  "marketSummary": "2–3 sentences on the space this idea operates in and the dynamics shaping it",
+  "competitors": [
+    {
+      "category": "type of competitor (e.g. 'established enterprise players', 'VC-backed startups', 'DIY workarounds')",
+      "examples": "real or plausible examples — flag with '(verify)' if uncertain",
+      "howTheyWin": "what makes them sticky or hard to displace",
+      "openingForYou": "what gap they leave that this idea could exploit"
+    }
+  ],
+  "timingSignal": "1–2 sentences on why now — or why this may be too early or too late",
+  "differentiationHypothesis": "the specific wedge this idea has, IF the unvalidated assumptions hold",
+  "thingsToVerify": ["2–3 specific market facts the founder must confirm before trusting this analysis"]
+}`;
+};
+
 export const buildAssumptionMapPrompt = (
   ideaSummary: string,
   questionnaire: QA[],

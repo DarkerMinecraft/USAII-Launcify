@@ -8,7 +8,15 @@ import { ArrowRight, X, CheckCircle, AlertCircle, HelpCircle, Info, Loader2 } fr
 import Link from "next/link";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Label as ShadcnLabel } from "@/components/ui/label";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import type { AssumptionNode, AssumptionStatus, Canvas, QA } from "@/lib/types";
+import { updateSession } from "@/actions/sessions";
 
 const STATUS_CFG = {
   UNVALIDATED: {
@@ -96,9 +104,9 @@ const AssumptionFlowNode = ({ data }: { data: Record<string, unknown> }) => {
         </span>
       </div>
       <p
-        className="font-serif"
+        className="font-serif text-foreground"
         style={{
-          fontSize: "12px", color: "#ede9e0", lineHeight: 1.4, margin: 0,
+          fontSize: "12px", lineHeight: 1.4, margin: 0,
           display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden",
         }}
       >
@@ -144,14 +152,10 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
       lastUpdated: new Date().toISOString(),
     };
     try {
-      const res = await fetch(`/api/sessions/${sessionId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ canvas, assumptions: updated }),
-      });
-      if (!res.ok) setSaveError(true);
+      await updateSession(sessionId, { canvas, assumptions: updated });
     } catch {
       setSaveError(true);
+      toast.error("Could not save — changes may be lost.");
     } finally {
       setSaving(false);
     }
@@ -169,7 +173,7 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
       } else if (action === "MODIFY") {
         updated = prev.map((a) =>
           a.id === nodeId
-            ? { ...a, claim: payload.claim ?? a.claim, remediation: { action: "MODIFY", howTested: "", whatFound: payload.claim ?? "", resolvedAt: new Date().toISOString() } }
+            ? { ...a, claim: payload.claim ?? a.claim, remediation: { action: "MODIFY", howTested: "", whatFound: "", resolvedAt: new Date().toISOString() } }
             : a
         );
       } else {
@@ -188,34 +192,32 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
   const selectedNode = selected ? (assumptions.find((a) => a.id === selected.id) ?? null) : null;
 
   return (
-    <div className="flex flex-col" style={{ minHeight: "100vh", background: "var(--war-room-bg)" }}>
+    <div className="flex flex-col min-h-screen bg-war-room-bg">
 
       <div
-        className="flex items-center gap-3 px-6 py-3 shrink-0"
-        style={{ background: "rgba(194,105,42,0.07)", borderBottom: "1px solid rgba(194,105,42,0.22)" }}
+        className="flex items-center gap-3 px-6 py-3 shrink-0 bg-[rgba(194,105,42,0.07)] border-b border-[rgba(194,105,42,0.22)]"
       >
-        <Info className="w-3.5 h-3.5 shrink-0" style={{ color: "#c2692a" }} />
-        <p className="font-mono uppercase flex-1" style={{ fontSize: "9px", letterSpacing: "0.1em", color: "#9a958c" }}>
+        <Info className="w-3.5 h-3.5 shrink-0 text-agent-skeptic" />
+        <p className="font-mono uppercase flex-1 text-text-muted" style={{ fontSize: "9px", letterSpacing: "0.1em" }}>
           This analysis is based entirely on what you told us — it does not replace talking to real customers.
           The AI does not decide whether your idea is worth pursuing.
         </p>
-        {saving && <Loader2 className="w-3 h-3 animate-spin shrink-0" style={{ color: "#5a574f" }} />}
+        {saving && <Loader2 className="w-3 h-3 animate-spin shrink-0 text-text-faint" />}
         {saveError && !saving && (
-          <span className="font-mono uppercase shrink-0" style={{ fontSize: "8px", color: "#c2692a", letterSpacing: "0.1em" }}>
+          <span className="font-mono uppercase shrink-0 text-agent-skeptic" style={{ fontSize: "8px", letterSpacing: "0.1em" }}>
             Save failed
           </span>
         )}
       </div>
 
       <div
-        className="flex items-center justify-between px-8 py-5 shrink-0"
-        style={{ borderBottom: "1px solid #2e2c28" }}
+        className="flex items-center justify-between px-8 py-5 shrink-0 border-b border-border"
       >
         <div>
-          <h1 className="font-serif italic" style={{ fontSize: "22px", color: "#ede9e0", lineHeight: 1.1 }}>
+          <h1 className="font-serif italic text-foreground" style={{ fontSize: "22px", lineHeight: 1.1 }}>
             Your Assumption Map
           </h1>
-          <p className="font-mono uppercase mt-1" style={{ fontSize: "9px", letterSpacing: "0.14em", color: "#5a574f" }}>
+          <p className="font-mono uppercase mt-1 text-text-faint" style={{ fontSize: "9px", letterSpacing: "0.14em" }}>
             {assumptions.length} assumption{assumptions.length !== 1 ? "s" : ""} · click any node to review
           </p>
         </div>
@@ -245,7 +247,7 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
             zoomOnScroll={true}
             minZoom={0.4}
             maxZoom={1.6}
-            style={{ background: "transparent" }}
+            className="bg-transparent"
           >
             <Background color="#252320" gap={28} size={1} />
           </ReactFlow>
@@ -259,14 +261,7 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 340, opacity: 0 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              style={{
-                width: "340px",
-                background: "#131210",
-                borderLeft: "1px solid #2e2c28",
-                display: "flex",
-                flexDirection: "column",
-                overflowY: "auto",
-              }}
+              className="w-[340px] bg-surface-1 border-l border-border flex flex-col overflow-y-auto"
             >
               <NodePanel node={selectedNode} onClose={() => setSelected(null)} onRemediate={handleRemediate} />
             </motion.div>
@@ -275,24 +270,17 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
       </div>
 
       <div
-        className="flex items-center justify-between px-8 py-4 shrink-0"
-        style={{ borderTop: "1px solid #2e2c28" }}
+        className="flex items-center justify-between px-8 py-4 shrink-0 border-t border-border"
       >
-        <p className="font-serif italic" style={{ fontSize: "13px", color: "#7a7670", maxWidth: "30rem" }}>
+        <p className="font-serif italic text-text-dim" style={{ fontSize: "13px", maxWidth: "30rem" }}>
           Review your assumptions, then take your first real step in the Launchpad.
         </p>
-        <Link
-          href={`/launchpad?sessionId=${sessionId}`}
-          className="inline-flex items-center gap-2.5 font-semibold"
-          style={{
-            background: "#ede9e0", color: "#131210",
-            borderRadius: "9px", padding: "10px 20px",
-            fontSize: "14px", textDecoration: "none",
-          }}
-        >
-          Open the Launchpad
-          <ArrowRight className="w-4 h-4" />
-        </Link>
+        <Button asChild className="gap-2.5 rounded-[9px] px-5 py-2.5 text-[14px] font-semibold">
+          <Link href={`/launchpad?sessionId=${sessionId}`}>
+            Open the Launchpad
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </Button>
       </div>
     </div>
   );
@@ -301,16 +289,13 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
 const StatusPill = ({ count, status }: { count: number; status: AssumptionStatus }) => {
   const cfg = STATUS_CFG[status];
   return (
-    <div
-      className="flex items-center gap-1.5 font-mono uppercase"
-      style={{
-        padding: "4px 10px", borderRadius: "5px",
-        background: cfg.bg, border: `1px solid ${cfg.border}`,
-        fontSize: "9px", letterSpacing: "0.12em", color: cfg.color,
-      }}
+    <Badge
+      variant="outline"
+      className="font-mono uppercase gap-1.5 h-auto py-1 px-2.5 rounded-[5px] text-[9px] tracking-[0.12em]"
+      style={{ background: cfg.bg, borderColor: cfg.border, color: cfg.color }}
     >
       {count} {cfg.label}
-    </div>
+    </Badge>
   );
 };
 
@@ -346,22 +331,31 @@ const NodePanel = ({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: "1px solid #2e2c28" }}>
+      <div className="flex items-center justify-between px-5 py-4 shrink-0 border-b border-border">
         <div className="flex items-center gap-2">
           <Icon style={{ width: "13px", height: "13px", color: cfg.color }} />
-          <span className="font-mono uppercase" style={{ fontSize: "9px", letterSpacing: "0.12em", color: cfg.color }}>
+          <Badge
+            variant="outline"
+            className="font-mono uppercase text-[9px] tracking-[0.12em] h-auto py-0.5 px-2 rounded-[4px]"
+            style={{ color: cfg.color, borderColor: cfg.border, background: cfg.bg }}
+          >
             {cfg.label}
-          </span>
+          </Badge>
         </div>
-        <button onClick={onClose} style={{ color: "#5a574f", padding: "4px", lineHeight: 0 }}>
-          <X className="w-4 h-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button onClick={onClose} variant="ghost" size="icon-sm" className="text-text-faint">
+              <X className="w-4 h-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Close</TooltipContent>
+        </Tooltip>
       </div>
 
       <div className="flex flex-col gap-5 p-5 overflow-y-auto">
         <div>
-          <Label>Assumption</Label>
-          <p className="font-serif" style={{ fontSize: "15px", color: "#ede9e0", lineHeight: 1.5, marginTop: "6px" }}>
+          <SectionLabel>Assumption</SectionLabel>
+          <p className="font-serif text-foreground" style={{ fontSize: "15px", lineHeight: 1.5, marginTop: "6px" }}>
             {node.claim}
           </p>
         </div>
@@ -371,111 +365,103 @@ const NodePanel = ({
         </span>
 
         <div>
-          <Label>Why this status</Label>
-          <p style={{ fontSize: "13px", color: "#9a958c", lineHeight: 1.55, marginTop: "6px" }}>
+          <SectionLabel>Why this status</SectionLabel>
+          <p className="text-text-muted" style={{ fontSize: "13px", lineHeight: 1.55, marginTop: "6px" }}>
             {node.explanation}
           </p>
         </div>
 
         {node.howToTest && (
-          <div style={{ background: "rgba(194,105,42,0.07)", border: "1px solid rgba(194,105,42,0.24)", borderRadius: "9px", padding: "12px 14px" }}>
-            <p className="font-mono uppercase mb-2" style={{ fontSize: "8px", letterSpacing: "0.13em", color: "#c2692a" }}>
+          <div className="bg-[rgba(194,105,42,0.07)] border border-[rgba(194,105,42,0.24)] rounded-[9px] p-[12px_14px]">
+            <p className="font-mono uppercase mb-2 text-agent-skeptic" style={{ fontSize: "8px", letterSpacing: "0.13em" }}>
               How to test this
             </p>
-            <p style={{ fontSize: "12.5px", color: "#ede9e0", lineHeight: 1.5 }}>
+            <p className="text-foreground" style={{ fontSize: "12.5px", lineHeight: 1.5 }}>
               {node.howToTest}
             </p>
           </div>
         )}
 
         <p
-          className="font-serif italic"
-          style={{ fontSize: "11.5px", color: "#5a574f", lineHeight: 1.5, borderTop: "1px solid #2e2c28", paddingTop: "14px" }}
+          className="font-serif italic text-text-faint border-t border-border"
+          style={{ fontSize: "11.5px", lineHeight: 1.5, paddingTop: "14px" }}
         >
           This status was AI-inferred from only what you told us. Verify before trusting it.
         </p>
 
         {node.remediation && (
-          <div style={{ background: "rgba(74,124,89,0.08)", border: "1px solid rgba(111,163,126,0.25)", borderRadius: "9px", padding: "12px 14px" }}>
-            <p className="font-mono uppercase" style={{ fontSize: "8px", letterSpacing: "0.12em", color: "#6fa37e" }}>
+          <div className="bg-[rgba(74,124,89,0.08)] border border-[rgba(111,163,126,0.25)] rounded-[9px] p-[12px_14px]">
+            <p className="font-mono uppercase text-agent-operator" style={{ fontSize: "8px", letterSpacing: "0.12em" }}>
               You reviewed this assumption
             </p>
           </div>
         )}
 
         {!node.remediation && (
-          <div style={{ borderTop: "1px solid #2e2c28", paddingTop: "14px" }}>
-            <Label>What do you want to do?</Label>
-            <div className="flex flex-col gap-2 mt-3">
-              {(["VALIDATE", "MODIFY", "REMOVE"] as const).map((a) => (
-                <button
-                  key={a}
-                  onClick={() => setAction(action === a ? null : a)}
-                  className="text-left font-mono uppercase"
-                  style={{
-                    padding: "8px 12px", borderRadius: "7px",
-                    fontSize: "9px", letterSpacing: "0.1em",
-                    background: action === a ? "rgba(237,233,224,0.08)" : "transparent",
-                    border: `1px solid ${action === a ? "#5a574f" : "#2e2c28"}`,
-                    color: action === a ? "#ede9e0" : "#7a7670",
-                    transition: "all 0.15s", cursor: "pointer",
-                  }}
+          <div className="flex flex-col gap-5">
+            <Separator className="bg-border" />
+            <div>
+              <SectionLabel>What do you want to do?</SectionLabel>
+              <div className="flex flex-col gap-2 mt-3">
+                {(["VALIDATE", "MODIFY", "REMOVE"] as const).map((a) => (
+                  <Button
+                    key={a}
+                    onClick={() => setAction(action === a ? null : a)}
+                    variant={action === a ? "secondary" : "ghost"}
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start font-mono uppercase text-[9px] tracking-[0.1em] rounded-[7px] h-auto py-2 px-3",
+                      action === a ? "text-foreground" : "text-text-dim"
+                    )}
+                  >
+                    {a === "VALIDATE" ? "Validate this" : a === "MODIFY" ? "Modify the claim" : "Remove this assumption"}
+                  </Button>
+                ))}
+              </div>
+
+              <AnimatePresence mode="wait">
+                {action === "VALIDATE" && (
+                  <motion.div key="v" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-3 mt-4">
+                    <FieldTextarea label="How did you test this?" value={howTested} onChange={setHowTested} placeholder="e.g. Interviewed 5 founders who faced this problem…" />
+                    <FieldTextarea label="What did you find?" value={whatFound} onChange={setWhatFound} placeholder="e.g. All confirmed they spend 3+ hours a week on this…" />
+                  </motion.div>
+                )}
+                {action === "MODIFY" && (
+                  <motion.div key="m" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-4">
+                    <FieldTextarea label="Updated claim" value={modifiedClaim} onChange={setModifiedClaim} rows={3} />
+                  </motion.div>
+                )}
+                {action === "REMOVE" && (
+                  <motion.div key="r" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-4">
+                    <div className="flex items-start gap-2.5">
+                      <Checkbox
+                        id="confirm-remove"
+                        checked={confirmRemove}
+                        onCheckedChange={(c) => setConfirmRemove(c === true)}
+                        className="mt-0.5 shrink-0 border-[#5a574f] data-checked:bg-[#c2692a] data-checked:border-[#c2692a]"
+                      />
+                      <label
+                        htmlFor="confirm-remove"
+                        className="cursor-pointer text-text-muted"
+                        style={{ fontSize: "12px", lineHeight: 1.5 }}
+                      >
+                        This assumption will be excluded from your Launchpad brief.
+                      </label>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {action && (
+                <Button
+                  onClick={submit}
+                  disabled={!canSubmit}
+                  className="w-full mt-4"
                 >
-                  {a === "VALIDATE" ? "Validate this" : a === "MODIFY" ? "Modify the claim" : "Remove this assumption"}
-                </button>
-              ))}
+                  Confirm
+                </Button>
+              )}
             </div>
-
-            <AnimatePresence mode="wait">
-              {action === "VALIDATE" && (
-                <motion.div key="v" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col gap-3 mt-4">
-                  <FieldTextarea label="How did you test this?" value={howTested} onChange={setHowTested} placeholder="e.g. Interviewed 5 founders who faced this problem…" />
-                  <FieldTextarea label="What did you find?" value={whatFound} onChange={setWhatFound} placeholder="e.g. All confirmed they spend 3+ hours a week on this…" />
-                </motion.div>
-              )}
-              {action === "MODIFY" && (
-                <motion.div key="m" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-4">
-                  <FieldTextarea label="Updated claim" value={modifiedClaim} onChange={setModifiedClaim} rows={3} />
-                </motion.div>
-              )}
-              {action === "REMOVE" && (
-                <motion.div key="r" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-4">
-                  <div className="flex items-start gap-2.5">
-                    <Checkbox
-                      id="confirm-remove"
-                      checked={confirmRemove}
-                      onCheckedChange={(c) => setConfirmRemove(c === true)}
-                      className="mt-0.5 shrink-0 border-[#5a574f] data-checked:bg-[#c2692a] data-checked:border-[#c2692a]"
-                    />
-                    <label
-                      htmlFor="confirm-remove"
-                      className="cursor-pointer"
-                      style={{ fontSize: "12px", color: "#9a958c", lineHeight: 1.5 }}
-                    >
-                      This assumption will be excluded from your Launchpad brief.
-                    </label>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {action && (
-              <button
-                onClick={submit}
-                disabled={!canSubmit}
-                className="w-full font-semibold mt-4"
-                style={{
-                  padding: "10px 16px", borderRadius: "8px", fontSize: "13px",
-                  background: canSubmit ? "#ede9e0" : "#1a1916",
-                  color: canSubmit ? "#131210" : "#5a574f",
-                  border: `1px solid ${canSubmit ? "transparent" : "#2e2c28"}`,
-                  cursor: canSubmit ? "pointer" : "not-allowed",
-                  transition: "all 0.15s",
-                }}
-              >
-                Confirm
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -483,23 +469,21 @@ const NodePanel = ({
   );
 };
 
-const Label = ({ children }: { children: React.ReactNode }) => (
-  <p className="font-mono uppercase" style={{ fontSize: "8.5px", letterSpacing: "0.12em", color: "#5a574f" }}>
-    {children}
-  </p>
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <p className="eyebrow-sm">{children}</p>
 );
 
 const FieldTextarea = ({ label, value, onChange, placeholder, rows = 2 }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number;
 }) => (
   <div className="flex flex-col gap-1.5">
-    <Label>{label}</Label>
+    <ShadcnLabel className="eyebrow-sm">{label}</ShadcnLabel>
     <Textarea
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={rows}
-      className="bg-[#15140f] border border-[#38332b] rounded-[7px] px-[10px] py-2 text-[#ede9e0] text-[12.5px] leading-relaxed resize-y placeholder:text-[#5a574f] focus-visible:border-[#5a574f] focus-visible:ring-1 focus-visible:ring-[#5a574f]/20 min-h-0"
+      className="bg-surface-2 border border-border-strong rounded-[7px] px-[10px] py-2 text-foreground text-[12.5px] leading-relaxed resize-y placeholder:text-text-faint focus-visible:border-text-faint focus-visible:ring-1 focus-visible:ring-text-faint/20 min-h-0"
     />
   </div>
 );

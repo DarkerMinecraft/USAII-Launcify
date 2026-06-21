@@ -1,5 +1,6 @@
 import { Auth0Client } from "@auth0/nextjs-auth0/server";
 import { NextResponse } from "next/server";
+import axios from "axios";
 
 // Server-side Auth0 client. Domain, client id/secret, AUTH0_SECRET and
 // APP_BASE_URL are read from env automatically. We request an access token for
@@ -42,10 +43,8 @@ export const auth0 = new Auth0Client({
 
     if (session?.tokenSet.accessToken) {
       try {
-        await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/v1/auth/sync`, {
-          method: "GET",
+        await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/v1/auth/sync`, {
           headers: { Authorization: `Bearer ${session.tokenSet.accessToken}` },
-          cache: "no-store",
         });
       } catch (err) {
         // Non-fatal — ensureUserSynced() in backend.ts will retry on first API call.

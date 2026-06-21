@@ -1,3 +1,4 @@
+import axios, { isAxiosError, type AxiosRequestConfig } from "axios";
 import { auth0 } from "@/lib/auth0";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -12,18 +13,19 @@ export class BackendError extends Error {
   }
 }
 
+const client = axios.create({ baseURL: BACKEND_URL });
+
 /**
  * Forwards a request to the Express backend with the founder's Auth0 access
- * token attached. Used by the BFF route handlers so the browser never holds the
- * token. Throws BackendAuthError if the user is not logged in.
+ * token attached. Returns the parsed response body directly. Throws
+ * BackendAuthError if unauthenticated, BackendError for any HTTP error.
  *
- * Call from a Route Handler (cookies are writable there, so a refreshed token
- * is persisted) — not from a Server Component.
+ * Call from Server Actions or Route Handlers — never from client components.
  */
-export const forwardToBackend = async (
+export const forwardToBackend = async <T = unknown>(
   path: string,
-  init?: RequestInit,
-): Promise<Response> => {
+  config?: AxiosRequestConfig,
+): Promise<T> => {
   if (!BACKEND_URL) {
     throw new BackendError("NEXT_PUBLIC_BACKEND_URL is not configured", 500);
   }
@@ -43,29 +45,37 @@ export const forwardToBackend = async (
     throw new BackendAuthError("Not authenticated");
   }
 
-  return fetch(`${BACKEND_URL}${path}`, {
-    ...init,
-    headers: {
-      ...(init?.headers ?? {}),
-      Authorization: `Bearer ${token}`,
-    },
-    cache: "no-store",
-  });
+  try {
+    const res = await client.request<T>({
+      url: path,
+      ...config,
+      headers: {
+        ...config?.headers,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  } catch (err) {
+    if (isAxiosError(err)) {
+      const status = err.response?.status ?? 500;
+      if (status === 401 || status === 403) {
+        throw new BackendAuthError("Not authenticated");
+      }
+      const message =
+        (err.response?.data as { error?: string } | undefined)?.error ??
+        err.message ??
+        "Backend error";
+      throw new BackendError(message, status);
+    }
+    throw err;
+  }
 };
 
 /**
  * Idempotently upserts the local User row via GET /v1/auth/sync. requireUser on
  * the backend returns 404 until this has run, so every authenticated write calls
  * this first — making the flow resilient regardless of login-callback timing.
- * The sync endpoint needs an `email` claim on the access token (Auth0 Action).
  */
 export const ensureUserSynced = async (): Promise<void> => {
-  const res = await forwardToBackend("/v1/auth/sync", { method: "GET" });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new BackendError(
-      `Account sync failed (${res.status}). ${detail}`.trim(),
-      res.status,
-    );
-  }
+  await forwardToBackend("/v1/auth/sync");
 };
