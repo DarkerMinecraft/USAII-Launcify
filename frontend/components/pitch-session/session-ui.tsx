@@ -33,6 +33,8 @@ const formatTimestamp = (ms: number) =>
 
 export const SessionUi = () => {
   const [permPhase, setPermPhase]       = useState<PermPhase>('allow');
+  const [micPending, setMicPending]     = useState(false);
+  const [micError, setMicError]         = useState<string | null>(null);
   const [cameraGranted, setCameraGranted] = useState(false);
   const [sessionState, setSessionState] = useState<SessionState>('connecting');
   const [isMuted, setIsMuted]           = useState(false);
@@ -143,12 +145,25 @@ export const SessionUi = () => {
   };
 
   const handleEnableMic = async () => {
+    setMicError(null);
+    setMicPending(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach(t => t.stop());
       setPermPhase('ready');
     } catch (err) {
       console.error(err);
+      if (err instanceof DOMException && err.name === 'NotAllowedError') {
+        setMicError('Microphone access was denied. Click the lock icon in your address bar to allow it, then try again.');
+      } else if (err instanceof DOMException && err.name === 'NotFoundError') {
+        setMicError('No microphone found. Connect a mic or headset and try again.');
+      } else if (!navigator.mediaDevices) {
+        setMicError('Microphone access requires HTTPS. Make sure you are on a secure connection.');
+      } else {
+        setMicError('Could not access microphone. Check your browser settings and try again.');
+      }
+    } finally {
+      setMicPending(false);
     }
   };
 
@@ -245,20 +260,26 @@ export const SessionUi = () => {
     return (
       <div className="h-dvh flex flex-col items-center justify-center bg-zinc-950 text-white gap-6 px-6 text-center">
         <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center">
-          <Mic className="w-7 h-7 text-white/70" />
+          {micPending ? <Loader2 className="w-7 h-7 text-white/50 animate-spin" /> : <Mic className="w-7 h-7 text-white/70" />}
         </div>
         <div className="space-y-2 max-w-xs">
           <h2 className="text-xl font-semibold">Enable Microphone</h2>
           <p className="text-white/50 text-sm leading-relaxed">
-            Allow microphone access to start your pitch session. Camera is optional.
+            {micPending
+              ? 'Waiting for permission — check your browser for a popup.'
+              : 'Allow microphone access to start your pitch session. Camera is optional.'}
           </p>
+          {micError && (
+            <p className="text-red-400 text-sm leading-relaxed pt-1">{micError}</p>
+          )}
         </div>
         <Button
           onClick={handleEnableMic}
+          disabled={micPending}
           size="lg"
-          className="bg-white text-zinc-950 hover:bg-white/90 font-semibold px-8 py-3 h-auto rounded-full"
+          className="bg-white text-zinc-950 hover:bg-white/90 font-semibold px-8 py-3 h-auto rounded-full disabled:opacity-50"
         >
-          Enable Microphone
+          {micPending ? 'Waiting…' : micError ? 'Try Again' : 'Enable Microphone'}
         </Button>
       </div>
     );
