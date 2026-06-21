@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BrainCircuit } from "lucide-react";
-import { auth0 } from "@/lib/auth0";
-import { Button } from "@/components/ui/button";
 import { listSessions } from "@/actions/sessions";
 import { getAdvisorData } from "@/actions/advisor";
 import { SessionPicker } from "@/components/strategy-room/session-picker";
@@ -18,25 +16,8 @@ const StrategyRoomPage = async ({
 }: {
   searchParams: Promise<{ sessionId?: string }>;
 }) => {
-  const authSession = await auth0.getSession();
-
-  if (!authSession) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen px-8 py-16 text-center">
-        <BrainCircuit className="w-8 h-8 text-text-faint mx-auto mb-6" />
-        <p className="font-serif italic mb-6 text-[26px] text-foreground">
-          Sign in to open Strategy Room.
-        </p>
-        <Button size="lg" className="text-[14.5px] rounded-[9px]" asChild>
-          <a href="/auth/login">Sign in to continue</a>
-        </Button>
-      </div>
-    );
-  }
-
   const { sessionId } = await searchParams;
 
-  // No sessionId → show session picker
   if (!sessionId) {
     let sessions: Awaited<ReturnType<typeof listSessions>> = [];
     try {
@@ -59,7 +40,6 @@ const StrategyRoomPage = async ({
     );
   }
 
-  // sessionId present → load advisor data server-side
   let advisorData;
   let session;
   try {
@@ -86,5 +66,4 @@ const StrategyRoomPage = async ({
     </div>
   );
 };
-
 export default StrategyRoomPage;

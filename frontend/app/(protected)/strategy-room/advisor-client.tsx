@@ -64,7 +64,6 @@ export const AdvisorClient = ({ sessionId, ideaSummary, initialMessages, initial
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="flex items-center gap-3 px-5 py-3 border-b border-border shrink-0">
         <BrainCircuit className="w-4 h-4 text-text-faint shrink-0" />
         <span className="font-mono uppercase text-[10px] tracking-[0.12em] text-text-dim shrink-0">
@@ -74,7 +73,6 @@ export const AdvisorClient = ({ sessionId, ideaSummary, initialMessages, initial
         <p className="font-serif italic text-[12.5px] text-text-muted truncate flex-1">
           {truncated}
         </p>
-        {/* Mobile docs button — hidden on desktop */}
         <Button
           size="xs"
           variant="outline"
@@ -86,15 +84,12 @@ export const AdvisorClient = ({ sessionId, ideaSummary, initialMessages, initial
         </Button>
       </div>
 
-      {/* Body */}
       <div className="flex flex-1 min-h-0">
-        {/* Chat column */}
         <div className="flex flex-col flex-1 min-w-0">
           <MessageList messages={messages} sending={sending} />
           <MessageInput onSend={handleSend} disabled={sending} />
         </div>
 
-        {/* Desktop docs aside — hidden on mobile */}
         <aside className="hidden md:flex flex-col w-[260px] shrink-0 border-l border-border bg-surface-1">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
             <FileText className="w-3.5 h-3.5 text-text-faint" />
@@ -109,7 +104,6 @@ export const AdvisorClient = ({ sessionId, ideaSummary, initialMessages, initial
         </aside>
       </div>
 
-      {/* Mobile Sheet for docs */}
       <Sheet open={docsOpen} onOpenChange={setDocsOpen}>
         <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
           <SheetHeader className="border-b border-border pb-3">

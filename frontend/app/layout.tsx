@@ -3,11 +3,8 @@ import { Spectral, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import { Auth0Provider } from "@auth0/nextjs-auth0";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { Sidebar } from "@/components/sidebar";
-import { MobileHeader, MobileBottomNav } from "@/components/mobile-nav";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
-import { auth0 } from "@/lib/auth0";
 
 const hankenGrotesk = Hanken_Grotesk({
   display: "swap",
@@ -65,13 +62,11 @@ export const viewport: Viewport = {
   themeColor: "#ede9e0",
 };
 
-const RootLayout = async ({
+const RootLayout = ({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) => {
-  const session = await auth0.getSession();
-
   return (
     <html
       lang="en"
@@ -86,12 +81,7 @@ const RootLayout = async ({
       <body className="flex flex-col bg-background text-foreground font-sans overflow-x-hidden">
         <Auth0Provider>
           <TooltipProvider delayDuration={400}>
-            <MobileHeader />
-            <div className="flex flex-1 min-h-0">
-              <Sidebar />
-              <main className="flex-1 min-h-screen overflow-auto min-w-0 pb-16 md:pb-0">{children}</main>
-            </div>
-            <MobileBottomNav />
+            {children}
             <Toaster position="bottom-right" />
           </TooltipProvider>
         </Auth0Provider>

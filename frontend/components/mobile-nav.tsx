@@ -43,7 +43,7 @@ export const MobileHeader = () => {
 
   return (
     <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-[52px] shrink-0 bg-surface-1 border-b border-hairline">
-      <Link href="/" className="flex items-center gap-2.5">
+      <Link href="/dashboard" className="flex items-center gap-2.5">
         <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 font-serif font-bold text-sm bg-primary text-primary-foreground shadow-[0_2px_8px_-2px_rgba(0,0,0,0.5)]">
           L
         </div>

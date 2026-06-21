@@ -53,8 +53,6 @@ const pillars = [
 export const Sidebar = () => {
   const pathname = usePathname();
   const { user, isLoading } = useUser();
-
-  if (pathname === "/") return null;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [savedName, setSavedName] = useState<string | undefined>(undefined);
   const [dbName, setDbName] = useState<string | undefined>(undefined);
@@ -80,7 +78,7 @@ export const Sidebar = () => {
     <aside className="hidden md:flex flex-col w-[232px] shrink-0 h-screen sticky top-0 bg-surface-1 border-r border-border">
       {/* Logo */}
       <div className="px-5 py-6 border-b border-hairline">
-        <Link href="/" className="flex items-center gap-3 group">
+        <Link href="/dashboard" className="flex items-center gap-3 group">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-serif font-bold text-base bg-primary text-primary-foreground shadow-[0_4px_12px_-4px_rgba(0,0,0,0.5)]">
             L
           </div>
