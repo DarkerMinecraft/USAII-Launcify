@@ -372,6 +372,9 @@ Specialized agents deployable on demand. Each reads from the shared Idea Canvas:
 
 ## Responsible AI
 
+**Risk: Misuse / Facilitating Harm**
+FOUNDR must not help plan businesses whose core purpose is illegal or seriously harmful. The shipped lenient `ALLOW` / `BLOCK` LLM classifier reasons about intent rather than keywords and is enforced at three points: before tailored-question generation, before session persistence using the combined questionnaire, and before a fresh arena starts. A block shows a safe refusal popup/card and never generates questions, creates a session, or starts an advisor turn. Classifier failure is retryable and fails closed. Canonical policy: [`.claude/GUARDRAIL.md`](../.claude/GUARDRAIL.md).
+
 **Risk: False Confidence**
 The War Room produces structured, authoritative-looking output. Founders may mistake this for validation. It is not — the analysis is based entirely on what the founder told the system.
 
@@ -629,12 +632,14 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 - [x] Build + test `app/api/war-room/questions/route.ts`
 - [x] Build + test `app/api/war-room/debate/route.ts`
 - [x] Build + test `app/api/war-room/assumptions/route.ts`
+- [x] Add `SAFETY_CLASSIFIER_SYSTEM` + `classifyIdea` through the shared Gemini→Groq provider layer (temperature 0, JSON verdict, intent-aware and prompt-injection resistant)
 
 ### Phase 5 — War Room: Idea Intake
 - [x] Build `components/war-room/Questionnaire.tsx` — one-liner → 3 AI questions + 5 defaults = 8 question form
 - [x] Wire submit: `POST /v1/sessions` to persist, route to `/war-room/session/[id]`
 - [x] Auth0 v4 integration + BFF proxy (`/api/sessions`) — the JWT prerequisite the original plan omitted (see Architectural Decisions)
 - [x] DB vigorously tested via `backend/scripts/test-db.ts` (13/13 against local Docker)
+- [x] Content-safety guardrail: intake gate before question generation, combined idea+questionnaire gate before persistence, fresh-arena bypass safety-net, and accessible refusal popup/card
 - ⚠️ Live login→submit→DB row is gated on the Auth0 dashboard + env items below (still pending)
 
 ### ⚠️ Before Phase 6 — Open inspo.html in a browser
@@ -677,13 +682,13 @@ The War Room session UI **must** match `frontend/inspo.html` visually. Read the 
 - [x] Phase 2 *(query layer tested via `test-db.ts`; authenticated HTTP smoke gated on Auth0 token)*
 - [x] Phase 3 *(public landing refreshed with Framer Motion; current `BackgroundPaths` experiment preserves the prior ripple component for rollback; auth-aware sidebar behavior; tsc/targeted lint clean)*
 - [x] Phase 4
-- [x] Phase 5 *(code complete + DB tested; live auth E2E gated on Auth0 dashboard/env)*
+- [x] Phase 5 *(code complete + DB tested; three-layer content-safety gate shipped and live classifier smoke-tested; live authenticated browser E2E still pending)*
 - [x] Phase 6 *(code complete: `WarRoomArena.tsx` arena + right-side round dialogue rail + timed reading intermissions + orchestration/persistence; targeted lint, tsc, and production build clean; live browser E2E still pending)*
 - [~] Phase 7 *(`assumption-map.tsx` code-complete: side panel + remediation + disclaimer + uncertainty-first sizing + microcopy + `howToTest` + CTA, now with the **interconnected-web** layout (2026-06-20). `tsc --noEmit` clean. Pending: in-browser visual verification (gated on Auth0) + the SUBMISSION.md pitch one-liner.)*
 - [ ] Phase 8
 
 > **Next task:** Finish Phase 7's loose ends, then Phase 8. The Assumption Map is built and the web redesign has landed (`tsc` clean) — what's left is:
-> 1. **Browser-verify the full War Room:** confirm the debate keeps the roundtable beside the independently scrolling dialogue rail, round dividers are legible, both 10-second intermissions pause orchestration/skip correctly, and the responsive layout stacks cleanly. Then complete synthesis and confirm the map renders (central "The Idea" hub + spokes + non-overlapping per-agent constellations), zoom/pan work, click→panel works, and remediation visibly re-lays-out the node (legible HITL).
+> 1. **Browser-verify the full War Room:** first submit a clearly harmful test idea and confirm the refusal popup appears before questions, then confirm a legitimate idea proceeds. Verify the debate keeps the roundtable beside the independently scrolling dialogue rail, round dividers are legible, both 10-second intermissions pause orchestration/skip correctly, and the responsive layout stacks cleanly. Then complete synthesis and confirm the map renders (central "The Idea" hub + spokes + non-overlapping per-agent constellations), zoom/pan work, click→panel works, and remediation visibly re-lays-out the node (legible HITL).
 > 2. Add the **pitch-ready one-liner** to `SUBMISSION.md` (the only unchecked Phase 7 item): Risk = *false confidence* → Mitigation = uncertainty-first map + "based only on what you told us" framing → HITL = *the founder validates every assumption; the AI never decides if the idea is good.*
 > 3. Then **Phase 8** — end-to-end pass (intake → debate → map → remediate → canvas persisted), the no-raw-JSON / loading-state / no-storage audit, confirm the landing shader on a GPU-enabled browser, and deploy.
 >

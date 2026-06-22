@@ -13,9 +13,11 @@ import type {
   Canvas,
   DebateMessage,
   QA,
+  SafetyBlockResult,
 } from "@/lib/types";
 import { AssumptionMap } from "@/components/war-room/assumption-map";
-import { generateDebateRound, generateAssumptions } from "@/actions/war-room";
+import { SafetyBlockCard } from "@/components/war-room/safety-refusal";
+import { classifyIdea, generateDebateRound, generateAssumptions } from "@/actions/war-room";
 import { getSession, updateSession } from "@/actions/sessions";
 
 const DEBATE_STEPS: { agent: AgentRole; round: 1 | 2 | 3 }[] = [
@@ -72,7 +74,7 @@ const THINK_DOT_DELAYS = [
   "[animation:thinkDot_1.2s_0.3s_infinite_ease-in-out]",
 ] as const;
 
-type Phase = "loading" | "debating" | "synthesizing" | "ready" | "error";
+type Phase = "loading" | "blocked" | "debating" | "synthesizing" | "ready" | "error";
 type ErrorKind = "load" | "turn" | "synth";
 type Intermission = {
   afterRound: 1 | 2;
@@ -96,6 +98,7 @@ export const WarRoomArena = ({ id }: { id: string }) => {
   const [failedStep, setFailedStep] = useState<number | null>(null);
   const [persistWarned, setPersistWarned] = useState(false);
   const [intermission, setIntermission] = useState<Intermission | null>(null);
+  const [safetyBlock, setSafetyBlock] = useState<SafetyBlockResult | null>(null);
 
   const startedRef = useRef(false);
   const stoppedRef = useRef(false);
@@ -314,6 +317,19 @@ export const WarRoomArena = ({ id }: { id: string }) => {
         return;
       }
 
+      if (existing.length === 0) {
+        const verdict = await classifyIdea(idea, responses);
+        if (verdict.decision === "BLOCK") {
+          setSafetyBlock({
+            status: "BLOCK",
+            category: verdict.category ?? "ILLEGAL_GOODS_SERVICES",
+            reason: verdict.reason,
+          });
+          setPhase("blocked");
+          return;
+        }
+      }
+
       if (resume >= DEBATE_STEPS.length) {
         await runSynthesis(existing, idea, responses);
         return;
@@ -364,6 +380,14 @@ export const WarRoomArena = ({ id }: { id: string }) => {
           <p className="text-[14px] text-text-muted max-w-[26rem]">{error}</p>
           <RetryButton label="Try again" onClick={() => void init()} />
         </div>
+      </Stage>
+    );
+  }
+
+  if (phase === "blocked" && safetyBlock) {
+    return (
+      <Stage>
+        <SafetyBlockCard block={safetyBlock} />
       </Stage>
     );
   }

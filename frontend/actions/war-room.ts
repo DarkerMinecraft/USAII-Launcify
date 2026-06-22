@@ -14,8 +14,18 @@ import {
   buildAssumptionMapPrompt,
   ASSUMPTION_REVIEW_SYSTEM,
   buildAssumptionReviewPrompt,
+  SAFETY_CLASSIFIER_SYSTEM,
+  buildSafetyClassifierPrompt,
 } from "@/prompts/agents";
-import type { AgentRole, AssumptionNode, AssumptionStatus, DebateMessage, QA } from "@/lib/types";
+import type {
+  AgentRole,
+  AssumptionNode,
+  AssumptionStatus,
+  DebateMessage,
+  QA,
+  SafetyBlockResult,
+  SafetyVerdict,
+} from "@/lib/types";
 
 const AGENT_SYSTEMS: Record<AgentRole, string> = {
   SKEPTIC: SKEPTIC_SYSTEM,
@@ -26,15 +36,101 @@ const AGENT_SYSTEMS: Record<AgentRole, string> = {
 const VALID_STATUSES = new Set<AssumptionStatus>(["VALIDATED", "UNVALIDATED", "NEEDS_INFO"]);
 const VALID_AGENTS = new Set<AgentRole>(["SKEPTIC", "STRATEGIST", "OPERATOR"]);
 
-export const generateQuestions = async (ideaSummary: string): Promise<{ questions: string[] }> => {
+const SAFETY_CATEGORIES = {
+  ILLEGAL_GOODS_SERVICES: "illegal goods or services",
+  VIOLENCE_PHYSICAL_HARM: "violence or serious physical harm",
+  CBRN_WEAPONS: "weapons intended for mass harm",
+  EXPLOITATION_OF_PEOPLE: "the exploitation or coercion of people",
+  CHILD_SAFETY_NONCONSENSUAL_SEXUAL_CONTENT: "sexual exploitation or non-consensual abuse",
+  FRAUD_DECEPTION: "fraud or deliberate deception",
+  CYBER_HARM: "malicious cyber activity",
+  REGULATORY_EVASION: "harmful evasion of safety or professional regulation",
+  DISCRIMINATION_TARGETED_HARM: "targeted harassment, stalking, or discrimination",
+} as const;
+
+type SafetyCategory = keyof typeof SAFETY_CATEGORIES;
+
+const HARD_BLOCK_CATEGORIES = new Set<SafetyCategory>([
+  "CBRN_WEAPONS",
+  "CHILD_SAFETY_NONCONSENSUAL_SEXUAL_CONTENT",
+]);
+
+const safetyRefusal = (category: SafetyCategory): string => {
+  if (HARD_BLOCK_CATEGORIES.has(category)) {
+    return "FOUNDR can't help develop this idea. It falls outside what this tool will engage with. FOUNDR is built to validate lawful, non-harmful businesses. You can submit a different idea.";
+  }
+
+  return `FOUNDR can't help develop this idea. It describes a business centered on ${SAFETY_CATEGORIES[category]}, which falls outside what this tool will assist with. FOUNDR is built to validate lawful businesses. If you think this was flagged in error, you can submit a different idea.`;
+};
+
+export const classifyIdea = async (
+  ideaSummary: string,
+  questionnaireResponses: QA[] = []
+): Promise<SafetyVerdict> => {
   if (!ideaSummary.trim()) throw new Error("ideaSummary is required");
+
+  try {
+    const raw = await callLLM(
+      SAFETY_CLASSIFIER_SYSTEM,
+      buildSafetyClassifierPrompt(ideaSummary.trim(), questionnaireResponses),
+      { temperature: 0 }
+    );
+    const verdict = parseJSON<{
+      decision?: unknown;
+      category?: unknown;
+      reason?: unknown;
+    }>(raw);
+
+    if (verdict?.decision === "ALLOW") {
+      return { decision: "ALLOW", category: null, reason: "" };
+    }
+
+    if (verdict?.decision === "BLOCK") {
+      if (
+        typeof verdict.category !== "string" ||
+        !Object.hasOwn(SAFETY_CATEGORIES, verdict.category)
+      ) {
+        throw new Error("AI returned an unexpected safety category");
+      }
+      const category = verdict.category as SafetyCategory;
+      return {
+        decision: "BLOCK",
+        category,
+        reason: safetyRefusal(category),
+      };
+    }
+
+    throw new Error("AI returned an unexpected safety verdict");
+  } catch (err) {
+    if (err instanceof GeminiParseError || err instanceof LLMError || err instanceof Error) {
+      throw new Error(
+        "We couldn't verify this idea safely right now. Nothing was submitted—please try again."
+      );
+    }
+    throw err;
+  }
+};
+
+export const generateQuestions = async (
+  ideaSummary: string
+): Promise<{ status: "ALLOW"; questions: string[] } | SafetyBlockResult> => {
+  if (!ideaSummary.trim()) throw new Error("ideaSummary is required");
+  const verdict = await classifyIdea(ideaSummary);
+  if (verdict.decision === "BLOCK") {
+    return {
+      status: "BLOCK",
+      category: verdict.category ?? "ILLEGAL_GOODS_SERVICES",
+      reason: verdict.reason,
+    };
+  }
+
   try {
     const raw = await callLLM(QUESTION_GEN_PROMPT, `Founder's idea: ${ideaSummary}`, { temperature: 0.4 });
     const questions = parseJSON<string[]>(raw);
     if (!Array.isArray(questions) || questions.length !== 3 || !questions.every((q) => typeof q === "string")) {
       throw new Error("AI returned an unexpected question format");
     }
-    return { questions };
+    return { status: "ALLOW", questions };
   } catch (err) {
     if (err instanceof GeminiParseError) throw new Error("AI returned malformed output");
     if (err instanceof LLMError) throw new Error("AI service is unavailable");

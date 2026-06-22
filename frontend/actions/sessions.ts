@@ -6,7 +6,8 @@ import {
   BackendAuthError,
   BackendError,
 } from "@/lib/backend";
-import type { QA, SessionData } from "@/lib/types";
+import { classifyIdea } from "@/actions/war-room";
+import type { QA, SafetyBlockResult, SessionData } from "@/lib/types";
 
 class ActionAuthError extends Error {}
 class ActionError extends Error {}
@@ -25,20 +26,33 @@ export const listSessions = async () => {
     >("/v1/sessions");
   } catch (err) {
     if (err instanceof ActionAuthError || err instanceof ActionError) throw err;
-    handleBackendError(err);
+    return handleBackendError(err);
   }
 };
 
-export const createSession = async (ideaSummary: string, questionnaireResponses: QA[]) => {
+export const createSession = async (
+  ideaSummary: string,
+  questionnaireResponses: QA[]
+): Promise<({ status: "ALLOW"; id: string }) | SafetyBlockResult> => {
+  const verdict = await classifyIdea(ideaSummary, questionnaireResponses);
+  if (verdict.decision === "BLOCK") {
+    return {
+      status: "BLOCK",
+      category: verdict.category ?? "ILLEGAL_GOODS_SERVICES",
+      reason: verdict.reason,
+    };
+  }
+
   try {
     await ensureUserSynced();
-    return await forwardToBackend<{ id: string }>("/v1/sessions", {
+    const session = await forwardToBackend<{ id: string }>("/v1/sessions", {
       method: "POST",
       data: { ideaSummary, questionnaireResponses },
     });
+    return { status: "ALLOW", id: session.id };
   } catch (err) {
     if (err instanceof ActionAuthError || err instanceof ActionError) throw err;
-    handleBackendError(err);
+    return handleBackendError(err);
   }
 };
 

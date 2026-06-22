@@ -4,6 +4,8 @@
 
 > This is also a **scored Responsible-AI safeguard** for the hackathon (see [Rubric Fit](#rubric-fit)). It is a *second, independent* safeguard alongside the false-confidence / uncertainty-first map.
 
+> **Implementation status (2026-06-21): SHIPPED.** The lenient `ALLOW` / `BLOCK` classifier is enforced before tailored-question generation, before session persistence using the combined questionnaire, and again before a fresh arena starts. Blocked intake is shown through an accessible refusal popup; bypassed sessions receive a full refusal card. Live smoke cases are recorded in `.claude/LOG.md`.
+
 ---
 
 ## 1. Guiding principle

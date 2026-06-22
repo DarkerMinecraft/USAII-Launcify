@@ -24,6 +24,20 @@ export type QA = {
   answer: string;
 };
 
+export type SafetyDecision = "ALLOW" | "BLOCK";
+
+export type SafetyVerdict = {
+  decision: SafetyDecision;
+  category: string | null;
+  reason: string;
+};
+
+export type SafetyBlockResult = {
+  status: "BLOCK";
+  category: string;
+  reason: string;
+};
+
 export type DebateMessage = {
   agent: AgentRole;
   round: 1 | 2 | 3;

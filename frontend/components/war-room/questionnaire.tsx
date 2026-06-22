@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import type { QA } from "@/lib/types";
+import { SafetyBlockDialog } from "@/components/war-room/safety-refusal";
+import type { QA, SafetyBlockResult } from "@/lib/types";
 import { generateQuestions as generateQuestionsAction } from "@/actions/war-room";
 import { createSession } from "@/actions/sessions";
 
@@ -28,6 +29,7 @@ export const Questionnaire = () => {
   const [generatingQuestions, startGenerating] = useTransition();
   const [submitting, startSubmitting] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [safetyBlock, setSafetyBlock] = useState<SafetyBlockResult | null>(null);
 
   const generateQuestions = () => {
     if (!idea.trim()) return;
@@ -35,6 +37,11 @@ export const Questionnaire = () => {
     startGenerating(async () => {
       try {
         const data = await generateQuestionsAction(idea.trim());
+        if (data.status === "BLOCK") {
+          setIdea("");
+          setSafetyBlock(data);
+          return;
+        }
         const aiQuestions: string[] = data.questions;
         const all = [...DEFAULT_QUESTIONS, ...aiQuestions];
         setQuestions(all);
@@ -61,7 +68,11 @@ export const Questionnaire = () => {
     startSubmitting(async () => {
       try {
         const data = await createSession(idea.trim(), qa);
-        router.push(`/war-room/session/${data!.id}`);
+        if (data.status === "BLOCK") {
+          setSafetyBlock(data);
+          return;
+        }
+        router.push(`/war-room/session/${data.id}`);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
       }
@@ -70,6 +81,22 @@ export const Questionnaire = () => {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-5 sm:px-8 py-10 sm:py-16">
+      <AnimatePresence>
+        {safetyBlock && (
+          <SafetyBlockDialog
+            block={safetyBlock}
+            onDismiss={() => {
+              setSafetyBlock(null);
+              setIdea("");
+              setQuestions([]);
+              setAnswers([]);
+              setStage("intake");
+              setError(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       <div className="eyebrow font-mono mb-4">
         War Room · Idea Intake
       </div>

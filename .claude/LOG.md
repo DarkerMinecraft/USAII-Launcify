@@ -353,6 +353,38 @@ Rebuilt the signed-out `/` experience as a full-width, premium launch page while
 - No dependencies installed: Framer Motion, shadcn `Button`, `cn`, `clsx`, `tailwind-merge`, and the standard `components/ui` path already existed. No demo route created because the experiment is directly integrated on `/`.
 - `npx tsc --noEmit` and targeted ESLint pass. A final post-tuning headless capture was unavailable because the environment’s GUI execution allowance was exhausted. `npm run build` reached Next/Turbopack but was blocked only by sandboxed Google Font network fetches; the previous production build before this isolated SVG swap was clean.
 
+## 2026-06-21 (Content-safety guardrail fixed and enforced)
+
+The new `.claude/GUARDRAIL.md` policy previously had no code behind it: no classifier symbol existed anywhere in `frontend`, and harmful one-liners flowed directly into question generation. Implemented the documented lenient `ALLOW` / `BLOCK` pipeline end to end.
+
+### Enforcement
+- `prompts/agents.ts`: added `SAFETY_CLASSIFIER_SYSTEM` and `buildSafetyClassifierPrompt()`. The prompt classifies underlying business intent in any language, treats the founder submission as untrusted JSON data, ignores embedded verdict/system instructions, blocks the policy taxonomy, and biases ambiguous/legal-regulated cases toward ALLOW.
+- `actions/war-room.ts`: added `classifyIdea(idea, questionnaire?)` through the existing Gemini→Groq provider layer at temperature 0. Output is parsed/validated against an own-property category allowlist. Model-provided refusal prose is never shown; the server generates fixed safe category copy, with minimal hard-block wording. Malformed/unavailable classification fails closed with a retryable error.
+- Primary gate: `generateQuestions()` calls the classifier first and returns `{status:"BLOCK"}` without invoking question generation.
+- Persistence gate: `createSession()` classifies the combined idea + questionnaire before auth sync/backend forwarding. A block returns without creating a `WarRoomSession`.
+- Bypass gate: `WarRoomArena.init()` reclassifies fresh sessions with no transcript before the first advisor call; bypassed harmful sessions render a refusal card and never debate.
+
+### UI
+- Added `components/war-room/safety-refusal.tsx`: accessible `role="alertdialog"` intake popup plus full-stage bypass refusal card. Both are firm/brief, do not echo the submitted idea or provide evasion coaching, and direct the founder to submit a different lawful idea.
+- `questionnaire.tsx` handles the new discriminated action results at both stages. A block clears the entered idea, generates no questions, creates no session, and displays the modal. Ordinary provider failure remains a retryable inline error.
+
+### Live safety smoke results
+- Illegal-goods case → `BLOCK / ILLEGAL_GOODS_SERVICES`.
+- Violence-for-hire case → `BLOCK / VIOLENCE_PHYSICAL_HARM`.
+- Ransomware framed as penetration testing → `BLOCK / CYBER_HARM`.
+- Prompt injection + fictional framing around ransomware → `BLOCK / CYBER_HARM`.
+- Rare-houseplant subscription → `ALLOW`.
+- Licensed cannabis delivery in legal jurisdictions → `ALLOW`.
+- `generateQuestions()` harmful case → `status:BLOCK`, no `questions` field.
+- Safe-looking idea whose questionnaire revealed trafficking intent → `status:BLOCK`, no session ID; the return occurred before backend/auth access.
+
+### Verification
+- Cleared stale generated `.next/dev/types` left behind by the recent route-group move; `npx next typegen` succeeds.
+- `npx tsc --noEmit` → clean.
+- Targeted ESLint across all changed safety files → clean with zero warnings.
+- `npm run build` → clean; Server Actions (`classifyIdea`, `generateQuestions`, `createSession`) appear in the generated reference manifest and all 12 routes build.
+- Remaining manual check: confirm the refusal popup visually in an authenticated browser and then confirm a legitimate idea proceeds through the full questionnaire.
+
 ## 2026-06-21 — Landing hero: swap BackgroundPaths → Three.js ripple shader
 - Per user request, replaced the animated SVG `BackgroundPaths` hero background in `components/landing/landing-page.tsx` with the approved `ShaderAnimation` (Three.js rippling shader, `components/ui/shader-animation.tsx`).
 - Background layer now: `-z-20 opacity-80 mix-blend-screen saturate-[1.15]` wrapping `<ShaderAnimation />` (was opacity-95/saturate-1.25 for the paths). The `-z-30` radial gradient and `-z-10` readability scrim are unchanged.
