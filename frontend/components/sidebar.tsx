@@ -3,13 +3,15 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Swords, Rocket, Mic, BrainCircuit, Lock, LogIn, Settings } from "lucide-react";
+import { Swords, Rocket, Mic, BrainCircuit, Lock, LogIn, Settings, Download, Share2 } from "lucide-react";
 import { useUser } from "@auth0/nextjs-auth0";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { UserSettingsDialog } from "@/components/user-settings-dialog";
 import { getProfile } from "@/actions/profile";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
+import { toast } from "sonner";
 
 const pillars = [
   {
@@ -56,6 +58,7 @@ export const Sidebar = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [savedName, setSavedName] = useState<string | undefined>(undefined);
   const [dbName, setDbName] = useState<string | undefined>(undefined);
+  const { isInstallable, isIOS, isStandalone, install } = usePwaInstall();
 
   useEffect(() => {
     if (user) {
@@ -77,12 +80,12 @@ export const Sidebar = () => {
   return (
     <aside className="hidden md:flex flex-col w-[232px] shrink-0 h-screen sticky top-0 bg-surface-1 border-r border-border">
       {/* Logo */}
-      <div className="px-5 py-6 border-b border-hairline">
-        <Link href="/dashboard" className="flex items-center gap-3 group">
+      <div className="px-5 py-6 border-b border-hairline flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-3 group flex-1 min-w-0">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-serif font-bold text-base bg-primary text-primary-foreground shadow-[0_4px_12px_-4px_rgba(0,0,0,0.5)]">
             L
           </div>
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-0.5 min-w-0">
             <span className="font-serif font-semibold leading-none text-foreground text-[15px]">
               Launchify
             </span>
@@ -91,6 +94,28 @@ export const Sidebar = () => {
             </span>
           </div>
         </Link>
+        {!isStandalone && isInstallable && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={install}
+            aria-label="Install app"
+            className="shrink-0 w-7 h-7 text-text-faint hover:text-foreground"
+          >
+            <Download className="w-3.5 h-3.5" aria-hidden="true" />
+          </Button>
+        )}
+        {!isStandalone && isIOS && !isInstallable && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => toast('To install: tap Share ⎋ in your browser, then "Add to Home Screen" ➕', { duration: 6000 })}
+            aria-label="Install app on iOS"
+            className="shrink-0 w-7 h-7 text-text-faint hover:text-foreground"
+          >
+            <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
+          </Button>
+        )}
       </div>
 
       {/* Pillar navigation */}
