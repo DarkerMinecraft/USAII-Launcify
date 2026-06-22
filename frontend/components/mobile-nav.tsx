@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Swords, Rocket, Mic, BrainCircuit, LogIn, LogOut } from "lucide-react";
+import { Swords, Rocket, Mic, BrainCircuit, LogIn, LogOut, Download } from "lucide-react";
 import { useUser } from "@auth0/nextjs-auth0";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 
 const pillars = [
   {
@@ -40,6 +41,7 @@ const pillars = [
 
 export const MobileHeader = () => {
   const { user } = useUser();
+  const { isInstallable, install } = usePwaInstall();
 
   return (
     <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-[52px] shrink-0 bg-surface-1 border-b border-hairline">
@@ -52,21 +54,34 @@ export const MobileHeader = () => {
         </span>
       </Link>
 
-      {user ? (
-        <Button variant="ghost" size="sm" className="text-[11.5px] text-text-dim bg-surface-3 border border-border h-auto py-1.5 rounded-lg" asChild>
-          <a href="/auth/logout" aria-label="Sign out">
-            <LogOut className="w-3 h-3" aria-hidden="true" />
-            Sign out
-          </a>
-        </Button>
-      ) : (
-        <Button size="sm" className="text-[11.5px] bg-surface-3 border border-border h-auto py-1.5 rounded-lg" asChild>
-          <a href="/auth/login">
-            <LogIn className="w-3 h-3" aria-hidden="true" />
-            Sign in
-          </a>
-        </Button>
-      )}
+      <div className="flex items-center gap-2">
+        {isInstallable && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={install}
+            aria-label="Install app"
+            className="w-8 h-8 text-text-faint hover:text-foreground"
+          >
+            <Download className="w-3.5 h-3.5" aria-hidden="true" />
+          </Button>
+        )}
+        {user ? (
+          <Button variant="ghost" size="sm" className="text-[11.5px] text-text-dim bg-surface-3 border border-border h-auto py-1.5 rounded-lg" asChild>
+            <a href="/auth/logout" aria-label="Sign out">
+              <LogOut className="w-3 h-3" aria-hidden="true" />
+              Sign out
+            </a>
+          </Button>
+        ) : (
+          <Button size="sm" className="text-[11.5px] bg-surface-3 border border-border h-auto py-1.5 rounded-lg" asChild>
+            <a href="/auth/login">
+              <LogIn className="w-3 h-3" aria-hidden="true" />
+              Sign in
+            </a>
+          </Button>
+        )}
+      </div>
     </header>
   );
 };
