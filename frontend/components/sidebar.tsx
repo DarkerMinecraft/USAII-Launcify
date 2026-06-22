@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Swords, Rocket, Mic, BrainCircuit, Lock, LogIn, Settings, Download } from "lucide-react";
+import { Swords, Rocket, Mic, BrainCircuit, Lock, LogIn, Settings, Download, Share2 } from "lucide-react";
 import { useUser } from "@auth0/nextjs-auth0";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { UserSettingsDialog } from "@/components/user-settings-dialog";
 import { getProfile } from "@/actions/profile";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
+import { toast } from "sonner";
 
 const pillars = [
   {
@@ -57,7 +58,7 @@ export const Sidebar = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [savedName, setSavedName] = useState<string | undefined>(undefined);
   const [dbName, setDbName] = useState<string | undefined>(undefined);
-  const { isInstallable, install } = usePwaInstall();
+  const { isInstallable, isIOS, isStandalone, install } = usePwaInstall();
 
   useEffect(() => {
     if (user) {
@@ -93,7 +94,7 @@ export const Sidebar = () => {
             </span>
           </div>
         </Link>
-        {isInstallable && (
+        {!isStandalone && isInstallable && (
           <Button
             variant="ghost"
             size="icon"
@@ -102,6 +103,17 @@ export const Sidebar = () => {
             className="shrink-0 w-7 h-7 text-text-faint hover:text-foreground"
           >
             <Download className="w-3.5 h-3.5" aria-hidden="true" />
+          </Button>
+        )}
+        {!isStandalone && isIOS && !isInstallable && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => toast('To install: tap Share ⎋ in your browser, then "Add to Home Screen" ➕', { duration: 6000 })}
+            aria-label="Install app on iOS"
+            className="shrink-0 w-7 h-7 text-text-faint hover:text-foreground"
+          >
+            <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
           </Button>
         )}
       </div>

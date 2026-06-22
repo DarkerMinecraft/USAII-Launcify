@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Swords, Rocket, Mic, BrainCircuit, LogIn, LogOut, Download } from "lucide-react";
+import { Swords, Rocket, Mic, BrainCircuit, LogIn, LogOut, Download, Share2 } from "lucide-react";
 import { useUser } from "@auth0/nextjs-auth0";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
+import { toast } from "sonner";
 
 const pillars = [
   {
@@ -41,7 +42,7 @@ const pillars = [
 
 export const MobileHeader = () => {
   const { user } = useUser();
-  const { isInstallable, install } = usePwaInstall();
+  const { isInstallable, isIOS, isStandalone, install } = usePwaInstall();
 
   return (
     <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-[52px] shrink-0 bg-surface-1 border-b border-hairline">
@@ -55,7 +56,7 @@ export const MobileHeader = () => {
       </Link>
 
       <div className="flex items-center gap-2">
-        {isInstallable && (
+        {!isStandalone && isInstallable && (
           <Button
             variant="ghost"
             size="icon"
@@ -64,6 +65,17 @@ export const MobileHeader = () => {
             className="w-8 h-8 text-text-faint hover:text-foreground"
           >
             <Download className="w-3.5 h-3.5" aria-hidden="true" />
+          </Button>
+        )}
+        {!isStandalone && isIOS && !isInstallable && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => toast('To install: tap Share ⎋ in Safari, then "Add to Home Screen" ➕', { duration: 6000 })}
+            aria-label="Install app on iOS"
+            className="w-8 h-8 text-text-faint hover:text-foreground"
+          >
+            <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
           </Button>
         )}
         {user ? (
