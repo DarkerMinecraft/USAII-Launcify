@@ -13,13 +13,19 @@ const manifest = (): MetadataRoute.Manifest => ({
   categories: ["productivity", "business"],
   icons: [
     {
-      src: "/icon?size=192",
+      src: "/icon?width=192&height=192",
+      sizes: "192x192",
+      type: "image/png",
+      purpose: "any",
+    },
+    {
+      src: "/icon?width=192&height=192",
       sizes: "192x192",
       type: "image/png",
       purpose: "maskable",
     },
     {
-      src: "/icon?size=512",
+      src: "/icon?width=512&height=512",
       sizes: "512x512",
       type: "image/png",
       purpose: "any",
